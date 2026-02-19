@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  cashu-admin-ui:
+    build: .
+    ports:
+      - "3339:3339"
+    environment:
+      - PORT=3339
+      - MINT_URL=http://mint:3338
+      - MINT_GRPC_PORT=8086
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASS=${ADMIN_PASS:-admin123}
+      - AUTH_TYPE=basic
+    depends_on:
+      - mint
+    restart: unless-stopped
+
+  mint:
+    image: cashubtc/nutshell:latest
+    ports:
+      - "3338:3338"
+    environment:
+      - MINT_BACKEND_BOLT11_SAT=FakeWallet
+      - MINT_LISTEN_HOST=0.0.0.0
+      - MINT_LISTEN_PORT=3338
+      - MINT_PRIVATE_KEY=your_private_key_here
+    volumes:
+      - mint_data:/data
+    restart: unless-stopped
+
+volumes:
+  mint_data:

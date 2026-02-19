@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cashu Nutshell Admin</title>
+  <link rel="icon" type="image/png" href="nut-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Karla:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="login-screen" class="login-screen hidden">
+    <div class="login-bg-pattern"></div>
+    <div class="login-container">
+      <div class="login-logo">
+        <img src="cashu-logo.png" alt="Cashu" class="login-logo-img">
+      </div>
+      <h1>Cashu Admin</h1>
+      <p class="login-subtitle">Mint Administration Panel</p>
+      <form id="login-form">
+        <div class="login-field">
+          <label for="login-user">Username</label>
+          <input type="text" id="login-user" placeholder="Enter username" autocomplete="username">
+        </div>
+        <div class="login-field">
+          <label for="login-pass">Password</label>
+          <input type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+        <p id="login-error" class="error-message hidden"></p>
+      </form>
+      <div class="login-footer">
+        <img src="nut-logo.png" alt="" class="login-footer-nut">
+        <span>Powered by Cashu Nutshell</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="main-app" class="hidden">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <img src="nut-logo.png" alt="Cashu" class="sidebar-logo-img" style="width:28px;height:28px">
+        </div>
+        <h2>Cashu Admin</h2>
+      </div>
+      <ul class="nav-menu">
+        <li class="nav-item active" data-page="dashboard">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </span>
+          <span class="nav-text">Dashboard</span>
+        </li>
+        <li class="nav-item" data-page="monitoring">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </span>
+          <span class="nav-text">Monitoring</span>
+        </li>
+        <li class="nav-item" data-page="settings">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </span>
+          <span class="nav-text">Settings</span>
+        </li>
+        <li class="nav-item" data-page="keysets">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          </span>
+          <span class="nav-text">Keysets</span>
+        </li>
+        <li class="nav-item" data-page="actions">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </span>
+          <span class="nav-text">Admin Actions</span>
+        </li>
+        <li class="nav-item" data-page="activity">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </span>
+          <span class="nav-text">Activity</span>
+        </li>
+        <li class="nav-item" data-page="logs">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </span>
+          <span class="nav-text">Logs</span>
+        </li>
+      </ul>
+      <div class="sidebar-footer">
+        <div class="connection-status" id="connection-status">
+          <span class="status-dot offline"></span>
+          <span class="status-text">Disconnected</span>
+        </div>
+        <button id="logout-btn" class="btn btn-small btn-outline">Logout</button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <!-- Dashboard Page -->
+      <section id="page-dashboard" class="page active">
+        <div class="page-header">
+          <h1>Dashboard</h1>
+          <p>Mint overview and quick stats</p>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <div class="stat-info">
+              <h3>Mint Status</h3>
+              <p class="stat-value" id="mint-status">--</p>
+              <span class="stat-label">Online</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            </div>
+            <div class="stat-info">
+              <h3>Active Keysets</h3>
+              <p class="stat-value" id="active-keysets">--</p>
+              <span class="stat-label">Keysets</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-green">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </div>
+            <div class="stat-info">
+              <h3>Version</h3>
+              <p class="stat-value" id="mint-version">--</p>
+              <span class="stat-label">Nutshell</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-orange">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-info">
+              <h3>Uptime</h3>
+              <p class="stat-value" id="admin-uptime">--</p>
+              <span class="stat-label">Admin UI</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="card-header">
+              <h2>Mint Information</h2>
+            </div>
+            <div class="card-body">
+              <div class="info-list" id="mint-info-display">
+                <div class="info-item">
+                  <span class="info-label">Name</span>
+                  <span class="info-value" id="info-name">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Public Key</span>
+                  <span class="info-value code" id="info-pubkey">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Version</span>
+                  <span class="info-value" id="info-version">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">MOTD</span>
+                  <span class="info-value" id="info-motd">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2>System Resources</h2>
+            </div>
+            <div class="card-body">
+              <div class="resource-bars">
+                <div class="resource-item">
+                  <div class="resource-header">
+                    <span>Memory</span>
+                    <span id="mem-usage">--</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="mem-bar" style="width: 0%"></div>
+                  </div>
+                </div>
+                <div class="resource-item">
+                  <div class="resource-header">
+                    <span>CPU (Sample)</span>
+                    <span id="cpu-usage">--</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="cpu-bar" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="system-info">
+                <p>Node.js: <span id="node-version">--</span></p>
+                <p>Platform: <span id="platform-info">--</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Monitoring Page -->
+      <section id="page-monitoring" class="page">
+        <div class="page-header">
+          <h1>Monitoring</h1>
+          <p>Real-time mint monitoring and metrics</p>
+        </div>
+
+        <div class="monitoring-grid">
+          <div class="card full-width">
+            <div class="card-header">
+              <h2>Live Metrics</h2>
+              <div class="card-actions">
+                <button class="btn btn-small btn-outline" id="clear-monitoring">Clear Data</button>
+                <button class="btn btn-small btn-primary" id="simulate-activity">Simulate Activity</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="metrics-grid">
+                <div class="metric-box">
+                  <span class="metric-label">Total Requests</span>
+                  <span class="metric-value" id="total-requests">0</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-label">Mint Operations</span>
+                  <span class="metric-value" id="mint-ops">0</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-label">Melt Operations</span>
+                  <span class="metric-value" id="melt-ops">0</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-label">Swap Operations</span>
+                  <span class="metric-value" id="swap-ops">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card full-width">
+            <div class="card-header">
+              <h2>Recent Requests</h2>
+            </div>
+            <div class="card-body">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>IP</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-requests-body">
+                  <tr>
+                    <td colspan="4" class="empty-state">No requests recorded</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings Page -->
+      <section id="page-settings" class="page">
+        <div class="page-header">
+          <h1>Settings</h1>
+          <p>Configure mint settings (changes may require restart)</p>
+        </div>
+
+        <div class="settings-tabs">
+          <button class="tab-btn active" data-tab="mint-info">Mint Info</button>
+          <button class="tab-btn" data-tab="limits">Limits</button>
+          <button class="tab-btn" data-tab="fees">Fees</button>
+          <button class="tab-btn" data-tab="contact">Contact</button>
+        </div>
+
+        <div class="settings-content">
+          <!-- Mint Info Tab -->
+          <div class="tab-content active" id="tab-mint-info">
+            <div class="card">
+              <div class="card-header">
+                <h2>Mint Information</h2>
+              </div>
+              <div class="card-body">
+                <form id="settings-info-form">
+                  <div class="form-group">
+                    <label>Mint Name</label>
+                    <input type="text" id="setting-name" placeholder="My Cashu Mint">
+                  </div>
+                  <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="setting-description" placeholder="Short description">
+                  </div>
+                  <div class="form-group">
+                    <label>Long Description</label>
+                    <textarea id="setting-description-long" rows="3" placeholder="Detailed description..."></textarea>
+                  </div>
+                  <div class="form-group">
+                    <label>Icon URL</label>
+                    <input type="text" id="setting-icon-url" placeholder="https://...">
+                  </div>
+                  <div class="form-group">
+                    <label>Terms of Service URL</label>
+                    <input type="text" id="setting-tos-url" placeholder="https://...">
+                  </div>
+                  <button type="submit" class="btn btn-primary">Save Changes</button>
+                  <p class="form-note">Note: Changes require mint restart or gRPC server to take effect</p>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Limits Tab -->
+          <div class="tab-content" id="tab-limits">
+            <div class="card">
+              <div class="card-header">
+                <h2>Mint Limits</h2>
+              </div>
+              <div class="card-body">
+                <form id="settings-limits-form">
+                  <div class="form-group">
+                    <label>Maximum Mint Amount (sat)</label>
+                    <input type="number" id="setting-max-mint" placeholder="Leave empty for unlimited">
+                  </div>
+                  <div class="form-group">
+                    <label>Maximum Melt Amount (sat)</label>
+                    <input type="number" id="setting-max-melt" placeholder="Leave empty for unlimited">
+                  </div>
+                  <div class="form-group">
+                    <label>Maximum Balance (sat)</label>
+                    <input type="number" id="setting-max-balance" placeholder="Leave empty for unlimited">
+                  </div>
+                  <div class="form-group">
+                    <label>Global Rate Limit (per minute)</label>
+                    <input type="number" id="setting-global-rate" value="60">
+                  </div>
+                  <div class="form-group">
+                    <label>Transaction Rate Limit (per minute)</label>
+                    <input type="number" id="setting-tx-rate" value="20">
+                  </div>
+                  <button type="submit" class="btn btn-primary">Save Changes</button>
+                  <p class="form-note">Note: Changes require mint restart</p>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fees Tab -->
+          <div class="tab-content" id="tab-fees">
+            <div class="card">
+              <div class="card-header">
+                <h2>Lightning Fees</h2>
+              </div>
+              <div class="card-body">
+                <form id="settings-fees-form">
+                  <div class="form-group">
+                    <label>Fee Percentage (%)</label>
+                    <input type="number" id="setting-fee-percent" step="0.1" placeholder="1.0">
+                  </div>
+                  <div class="form-group">
+                    <label>Minimum Reserve Fee (msat)</label>
+                    <input type="number" id="setting-fee-reserve" placeholder="2000">
+                  </div>
+                  <button type="submit" class="btn btn-primary">Save Changes</button>
+                  <p class="form-note">Note: Changes require mint restart</p>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Tab -->
+          <div class="tab-content" id="tab-contact">
+            <div class="card">
+              <div class="card-header">
+                <h2>Contact Information</h2>
+              </div>
+              <div class="card-body">
+                <form id="settings-contact-form">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Method</label>
+                      <select id="contact-method">
+                        <option value="email">Email</option>
+                        <option value="twitter">Twitter</option>
+                        <option value="telegram">Telegram</option>
+                        <option value="nostr">Nostr</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Contact Info</label>
+                      <input type="text" id="contact-info" placeholder="info@example.com">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>MOTD (Message of the Day)</label>
+                    <textarea id="setting-motd" rows="2" placeholder="Welcome message..."></textarea>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Update Contact</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Keysets Page -->
+      <section id="page-keysets" class="page">
+        <div class="page-header">
+          <h1>Keysets</h1>
+          <p>Manage mint keysets and perform key rotation</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Active Keysets</h2>
+            <button class="btn btn-primary" id="rotate-keyset-btn">Rotate Keyset</button>
+          </div>
+          <div class="card-body">
+            <table class="data-table" id="keysets-table">
+              <thead>
+                <tr>
+                  <th>Keyset ID</th>
+                  <th>Unit</th>
+                  <th>Active</th>
+                  <th>Input Fee (ppk)</th>
+                  <th>Max Order</th>
+                </tr>
+              </thead>
+              <tbody id="keysets-body">
+                <tr>
+                  <td colspan="5" class="empty-state">Loading keysets...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Key Rotation</h2>
+          </div>
+          <div class="card-body">
+            <form id="rotate-keyset-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Unit</label>
+                  <select id="rotate-unit">
+                    <option value="sat">SAT (satoshis)</option>
+                    <option value="msat">MSAT (millisatoshis)</option>
+                    <option value="usd">USD</option>
+                    <option value="eur">EUR</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Max Order</label>
+                  <input type="number" id="rotate-max-order" value="64" min="1" max="64">
+                </div>
+                <div class="form-group">
+                  <label>Input Fee (ppk)</label>
+                  <input type="number" id="rotate-fee" value="100" min="0">
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">Initiate Key Rotation</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Admin Actions Page -->
+      <section id="page-actions" class="page">
+        <div class="page-header">
+          <h1>Admin Actions</h1>
+          <p>Perform administrative operations on your mint</p>
+        </div>
+
+        <!-- Dangerous Operations -->
+        <div class="actions-section">
+          <div class="actions-section-header danger">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Dangerous Operations</span>
+          </div>
+          <div class="actions-grid actions-grid-2col">
+            <div class="card action-card action-card-danger">
+              <div class="action-card-severity">
+                <span class="severity-badge severity-danger">HIGH RISK</span>
+              </div>
+              <div class="card-body">
+                <div class="action-card-icon danger">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                </div>
+                <h3 class="action-card-title">Key Rotation</h3>
+                <p class="action-card-desc">Rotate to a new keyset for improved security. This generates new signing keys — existing tokens remain valid but old keys are deactivated.</p>
+                <div class="action-card-footer">
+                  <button class="btn btn-danger btn-action" id="action-rotate">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                    Rotate Keys Now
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card action-card action-card-warning">
+              <div class="action-card-severity">
+                <span class="severity-badge severity-warning">CAUTION</span>
+              </div>
+              <div class="card-body">
+                <div class="action-card-icon warning">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <h3 class="action-card-title">Free Mint</h3>
+                <p class="action-card-desc">Issue ecash tokens without requiring a Lightning payment. This creates unbacked tokens — <strong>use only for testing or authorized purposes.</strong></p>
+                <div class="action-card-footer">
+                  <button class="btn btn-warning btn-action" id="action-free-mint">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    Mint Free Ecash
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Utility Operations -->
+        <div class="actions-section">
+          <div class="actions-section-header utility">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <span>Utilities</span>
+          </div>
+          <div class="actions-grid actions-grid-2col">
+            <div class="card action-card action-card-utility">
+              <div class="card-body">
+                <div class="action-card-icon utility">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </div>
+                <h3 class="action-card-title">Quote Management</h3>
+                <p class="action-card-desc">Manually update mint or melt quote states for troubleshooting stuck or failed transactions.</p>
+                <div class="action-card-form">
+                  <div class="form-group">
+                    <label for="quote-id">Quote ID</label>
+                    <input type="text" id="quote-id" placeholder="Enter quote identifier">
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="quote-type">Type</label>
+                      <select id="quote-type">
+                        <option value="mint">Mint Quote</option>
+                        <option value="melt">Melt Quote</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="quote-state">New State</label>
+                      <select id="quote-state">
+                        <option value="PAID">PAID</option>
+                        <option value="UNPAID">UNPAID</option>
+                        <option value="ISSUED">ISSUED</option>
+                        <option value="EXPIRED">EXPIRED</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div class="action-card-footer">
+                  <button class="btn btn-primary btn-action" id="action-update-quote">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Update Quote
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card action-card action-card-utility">
+              <div class="card-body">
+                <div class="action-card-icon utility">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </div>
+                <h3 class="action-card-title">Clear Cache</h3>
+                <p class="action-card-desc">Flush the Redis cache and all monitoring data. This resets request counters, activity logs, and cached responses. The mint will rebuild its cache automatically.</p>
+                <div class="action-card-details">
+                  <div class="detail-item">
+                    <span class="detail-label">Affects</span>
+                    <span class="detail-value">Redis cache, monitoring data, request logs</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Recovery</span>
+                    <span class="detail-value">Cache rebuilds automatically on next request</span>
+                  </div>
+                </div>
+                <div class="action-card-footer">
+                  <button class="btn btn-outline btn-action" id="action-clear-cache">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Clear All Cache
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Free Mint Modal -->
+        <div id="free-mint-modal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Mint Free Ecash
+              </h2>
+              <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="warning-banner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                This is an admin operation that creates ecash without payment!
+              </div>
+              <form id="free-mint-form">
+                <div class="form-group">
+                  <label>Amount (sat)</label>
+                  <input type="number" id="free-mint-amount" min="1" placeholder="1000" required>
+                </div>
+                <div class="form-group">
+                  <label>Unit</label>
+                  <select id="free-mint-unit">
+                    <option value="sat">SAT</option>
+                    <option value="msat">MSAT</option>
+                    <option value="usd">USD</option>
+                    <option value="eur">EUR</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Number of Outputs</label>
+                  <input type="number" id="free-mint-outputs" min="1" max="10" value="1">
+                </div>
+                <button type="submit" class="btn btn-warning btn-full">Mint Ecash</button>
+              </form>
+              <div id="free-mint-result" class="result-box hidden"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Activity Page -->
+      <section id="page-activity" class="page">
+        <div class="page-header">
+          <h1>Activity Log</h1>
+          <p>View mint activity and transaction history</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Recent Activity</h2>
+            <div class="card-actions">
+              <select id="activity-filter">
+                <option value="">All Types</option>
+                <option value="mint">Mint</option>
+                <option value="melt">Melt</option>
+                <option value="swap">Swap</option>
+                <option value="checkstate">Check State</option>
+              </select>
+              <button class="btn btn-small btn-outline" id="refresh-activity">Refresh</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>IP Address</th>
+                </tr>
+              </thead>
+              <tbody id="activity-body">
+                <tr>
+                  <td colspan="4" class="empty-state">No activity recorded</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      <!-- Logs Page -->
+      <section id="page-logs" class="page">
+        <div class="page-header">
+          <h1>Logs</h1>
+          <p>Raw mint and admin server logs</p>
+        </div>
+
+        <div class="card full-width">
+          <div class="card-header">
+            <h2>Log Stream</h2>
+            <div class="card-actions">
+              <select id="log-level-filter">
+                <option value="">All Levels</option>
+                <option value="error">Error</option>
+                <option value="warn">Warning</option>
+                <option value="info">Info</option>
+                <option value="debug">Debug</option>
+              </select>
+              <select id="log-source-filter">
+                <option value="">All Sources</option>
+                <option value="mint">Mint</option>
+                <option value="proxy">Proxy</option>
+                <option value="admin">Admin</option>
+                <option value="websocket">WebSocket</option>
+                <option value="auth">Auth</option>
+              </select>
+              <label class="log-autoscroll-label">
+                <input type="checkbox" id="log-autoscroll" checked> Auto-scroll
+              </label>
+              <button class="btn btn-small btn-outline" id="refresh-logs">Refresh</button>
+              <button class="btn btn-small btn-danger" id="clear-logs">Clear</button>
+            </div>
+          </div>
+          <div class="log-viewer" id="log-viewer">
+            <div class="log-empty">Waiting for logs...</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
