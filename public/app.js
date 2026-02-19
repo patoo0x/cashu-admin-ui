@@ -1,4 +1,23 @@
-// Cashu Admin UI - Application JavaScript
+/**
+ * Cashu Admin UI — Frontend Application
+ *
+ * Single-page application (SPA) for the Cashu Nutshell Admin UI.
+ * No build step required — vanilla JavaScript, no framework dependencies.
+ *
+ * Architecture:
+ *   - CashuAdmin class manages all state and API communication
+ *   - HTTP Basic Auth credentials stored in localStorage (base64)
+ *   - WebSocket connection for real-time stats and log streaming
+ *   - Pages are show/hide sections (no client-side routing)
+ *
+ * API communication goes through fetchWithAuth() which injects the
+ * Basic Auth header on every request. On 401 responses, the user is
+ * automatically logged out and returned to the login screen.
+ *
+ * The admin API endpoints correspond to Nutshell's management gRPC
+ * service. See server.js for detailed endpoint documentation and
+ * gRPC method mappings.
+ */
 
 class CashuAdmin {
   constructor() {
@@ -8,10 +27,10 @@ class CashuAdmin {
     this.ws = null;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
-    
+
     this.init();
   }
-  
+
   init() {
     this.checkAuth();
     this.bindEvents();
@@ -106,7 +125,13 @@ class CashuAdmin {
     return response.json();
   }
   
-  // WebSocket
+  // ---------------------------------------------------------------------------
+  // WebSocket — Real-time Updates
+  // ---------------------------------------------------------------------------
+  // Connects to the admin UI's WebSocket server for live stats and log
+  // streaming. Similar in concept to Nutshell's /v1/ws (NUT-17) but for
+  // admin monitoring rather than mint subscriptions.
+  // Implements exponential backoff reconnection (up to 30s delay).
   connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}`;
@@ -162,7 +187,12 @@ class CashuAdmin {
     }
   }
   
+  // ---------------------------------------------------------------------------
   // Dashboard
+  // ---------------------------------------------------------------------------
+  // Fetches aggregated data from GET /api/admin/dashboard which proxies
+  // to Nutshell's /v1/info, /v1/keys, and /v1/keysets endpoints.
+  // Also loads OS-level stats (memory, CPU, disk) from the server.
   async loadDashboard() {
     try {
       const data = await this.fetchWithAuth('/api/admin/dashboard');
@@ -260,7 +290,11 @@ class CashuAdmin {
     }
   }
   
-  // Live Stats
+  // ---------------------------------------------------------------------------
+  // Live Stats (WebSocket-driven)
+  // ---------------------------------------------------------------------------
+  // Called on every WebSocket 'stats' message (every 5 seconds).
+  // Updates the dashboard's resource bars and system info panel.
   updateLiveStats(data) {
     // Update uptime
     const uptime = data.uptime;
@@ -275,6 +309,12 @@ class CashuAdmin {
     }
   }
   
+  /**
+   * Update OS-level stats on the dashboard.
+   * These metrics address the bounty requirement for monitoring
+   * "free disk space, used CPU by nutshell" on the underlying OS.
+   * Progress bars use color thresholds: green (<60%), yellow (60-80%), red (>80%).
+   */
   updateOsStats(os) {
     // OS Memory
     if (os.totalMemory && os.freeMemory) {
@@ -339,7 +379,15 @@ class CashuAdmin {
     }
   }
   
+  // ---------------------------------------------------------------------------
   // Monitoring
+  // ---------------------------------------------------------------------------
+  // Displays request counts by operation type (mint/melt/swap/checkstate).
+  // These correspond to Nutshell's core Cashu protocol operations:
+  //   - mint: NUT-04 (create tokens via Lightning invoice)
+  //   - melt: NUT-05 (redeem tokens to Lightning payment)
+  //   - swap: NUT-03 (split/merge tokens)
+  //   - checkstate: NUT-07 (check if tokens are spent)
   async loadMonitoring() {
     try {
       const data = await this.fetchWithAuth('/api/admin/monitoring');
@@ -406,7 +454,19 @@ class CashuAdmin {
     }
   }
   
+  // ---------------------------------------------------------------------------
   // Admin Actions
+  // ---------------------------------------------------------------------------
+  // High-impact operations that map to Nutshell's management gRPC service.
+  // Each action corresponds to a specific gRPC method — see server.js
+  // for the full mapping documentation.
+
+  /**
+   * Trigger keyset rotation.
+   * Maps to gRPC: MintManagementRPC.RotateNextKeyset()
+   * Creates a new keyset with incremented derivation path and deactivates
+   * the current one. Existing tokens on old keysets remain valid.
+   */
   async rotateKeyset() {
     try {
       const unit = document.getElementById('rotate-unit').value;
@@ -425,6 +485,12 @@ class CashuAdmin {
     }
   }
   
+  /**
+   * Issue ecash tokens without Lightning payment.
+   * Maps to gRPC: MintManagementRPC.UpdateNut04Quote() (mark quote as paid)
+   * followed by standard NUT-04 minting flow.
+   * WARNING: Creates unbacked ecash — use only for testing.
+   */
   async freeMint(amount, unit, outputs) {
     try {
       const result = await this.fetchWithAuth('/api/admin/mint/free', {
@@ -438,6 +504,11 @@ class CashuAdmin {
     }
   }
   
+  /**
+   * Override a mint (NUT-04) or melt (NUT-05) quote state.
+   * Maps to gRPC: MintManagementRPC.UpdateNut04Quote() or UpdateNut05Quote()
+   * Useful for recovering from stuck quotes or testing state transitions.
+   */
   async updateQuote(quoteId, type, state) {
     try {
       const endpoint = type === 'mint' ? '/api/admin/quote/mint' : '/api/admin/quote/melt';
