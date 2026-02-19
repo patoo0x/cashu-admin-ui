@@ -438,6 +438,54 @@ app.get('/api/admin/dashboard', requireAuth, async (req, res) => {
 });
 
 // =========================================================================
+// ADMIN API — MINT SERVER HEALTH
+// =========================================================================
+
+/**
+ * GET /api/admin/mint/health
+ * Ping the Nutshell mint and measure response latency, server time,
+ * and clock drift. This provides insight into the remote mint's
+ * availability and performance without requiring OS-level access.
+ *
+ * The mint's /v1/info endpoint returns a `time` field (unix timestamp)
+ * which we compare against local time to detect clock drift — important
+ * for HTLC timelock operations (NUT-14) and quote expiry.
+ */
+app.get('/api/admin/mint/health', requireAuth, async (req, res) => {
+  const start = Date.now();
+  try {
+    const response = await axios.get(`${CONFIG.mintUrl}/v1/info`, { timeout: 10000 });
+    const latencyMs = Date.now() - start;
+    const mintTime = response.data?.time;  // Unix timestamp from mint
+    const localTime = Math.floor(Date.now() / 1000);
+    const clockDriftSec = mintTime ? (localTime - mintTime) : null;
+
+    addLog('trace', 'proxy', `> Mint health check: ${latencyMs}ms, drift=${clockDriftSec}s`);
+
+    res.json({
+      reachable: true,
+      latencyMs,
+      mintUrl: CONFIG.mintUrl,
+      mintTime: mintTime || null,
+      mintTimeISO: mintTime ? new Date(mintTime * 1000).toISOString() : null,
+      localTime,
+      clockDriftSec,
+      version: response.data?.version || null,
+      name: response.data?.name || null
+    });
+  } catch (error) {
+    const latencyMs = Date.now() - start;
+    addLog('error', 'proxy', `Mint health check failed after ${latencyMs}ms: ${error.message}`);
+    res.json({
+      reachable: false,
+      latencyMs,
+      mintUrl: CONFIG.mintUrl,
+      error: error.message
+    });
+  }
+});
+
+// =========================================================================
 // ADMIN API — PROMETHEUS METRICS
 // =========================================================================
 

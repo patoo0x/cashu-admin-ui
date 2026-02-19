@@ -221,6 +221,11 @@ class CashuAdmin {
       if (data.os) {
         this.updateOsStats(data.os);
       }
+
+      // Start mint health polling (every 10 seconds)
+      this.pollMintHealth();
+      if (this._mintHealthInterval) clearInterval(this._mintHealthInterval);
+      this._mintHealthInterval = setInterval(() => this.pollMintHealth(), 10000);
       
       // Load settings
       await this.loadSettings();
@@ -379,6 +384,81 @@ class CashuAdmin {
     }
   }
   
+  // ---------------------------------------------------------------------------
+  // Mint Server Health
+  // ---------------------------------------------------------------------------
+  // Pings the remote mint via GET /api/admin/mint/health and displays
+  // latency, server time, clock drift, and connection health.
+  // Maintains a rolling window of latency samples for averaging.
+
+  /** @type {number[]} Rolling window of latency measurements */
+  _latencySamples = [];
+
+  async pollMintHealth() {
+    try {
+      const health = await this.fetchWithAuth('/api/admin/mint/health');
+
+      // Latency bar (scale: 0-2000ms, anything over 2s = 100%)
+      const latencyEl = document.getElementById('mint-latency');
+      if (latencyEl) latencyEl.textContent = `${health.latencyMs}ms`;
+      const latencyBar = document.getElementById('mint-latency-bar');
+      if (latencyBar) {
+        const pct = Math.min((health.latencyMs / 2000) * 100, 100);
+        latencyBar.style.width = `${pct}%`;
+        latencyBar.style.background = health.latencyMs > 1000 ? '#f85149'
+          : health.latencyMs > 500 ? '#d29922'
+          : 'linear-gradient(90deg, var(--accent-primary), #9d6de6)';
+      }
+
+      // Mint URL
+      const urlEl = document.getElementById('mint-url-info');
+      if (urlEl) urlEl.textContent = health.mintUrl || '--';
+
+      // Server time
+      const timeEl = document.getElementById('mint-server-time');
+      if (timeEl && health.mintTimeISO) {
+        timeEl.textContent = new Date(health.mintTimeISO).toLocaleTimeString();
+      }
+
+      // Clock drift
+      const driftEl = document.getElementById('mint-clock-drift');
+      if (driftEl && health.clockDriftSec !== null) {
+        const absDrift = Math.abs(health.clockDriftSec);
+        const driftStr = absDrift < 2 ? 'in sync'
+          : `${health.clockDriftSec > 0 ? '+' : ''}${health.clockDriftSec}s`;
+        driftEl.textContent = driftStr;
+        driftEl.style.color = absDrift > 30 ? '#f85149' : absDrift > 5 ? '#d29922' : '#3fb950';
+      }
+
+      // Rolling average latency
+      this._latencySamples.push(health.latencyMs);
+      if (this._latencySamples.length > 30) this._latencySamples.shift();
+      const avgLatency = Math.round(
+        this._latencySamples.reduce((a, b) => a + b, 0) / this._latencySamples.length
+      );
+      const avgEl = document.getElementById('mint-avg-latency');
+      if (avgEl) avgEl.textContent = `${avgLatency}ms (${this._latencySamples.length} samples)`;
+
+      // Health status
+      const healthEl = document.getElementById('mint-health');
+      if (healthEl) {
+        if (health.reachable) {
+          healthEl.textContent = health.latencyMs < 500 ? '● Healthy' : '● Degraded';
+          healthEl.style.color = health.latencyMs < 500 ? '#3fb950' : '#d29922';
+        } else {
+          healthEl.textContent = '● Unreachable';
+          healthEl.style.color = '#f85149';
+        }
+      }
+    } catch (e) {
+      const healthEl = document.getElementById('mint-health');
+      if (healthEl) {
+        healthEl.textContent = '● Error';
+        healthEl.style.color = '#f85149';
+      }
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Monitoring
   // ---------------------------------------------------------------------------

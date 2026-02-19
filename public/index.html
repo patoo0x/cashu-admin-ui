@@ -179,6 +179,32 @@
 
           <div class="card">
             <div class="card-header">
+              <h2>Mint Server</h2>
+            </div>
+            <div class="card-body">
+              <div class="resource-bars">
+                <div class="resource-item">
+                  <div class="resource-header">
+                    <span>Response Latency</span>
+                    <span id="mint-latency">--</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="mint-latency-bar" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="system-info">
+                <p>URL: <span id="mint-url-info">--</span></p>
+                <p>Server Time: <span id="mint-server-time">--</span></p>
+                <p>Clock Drift: <span id="mint-clock-drift">--</span></p>
+                <p>Avg Latency: <span id="mint-avg-latency">--</span></p>
+                <p>Health: <span id="mint-health">--</span></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
               <h2>System Resources <span style="font-size: 0.7em; font-weight: 400; opacity: 0.5;">(Admin UI Host)</span></h2>
             </div>
             <div class="card-body">
