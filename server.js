@@ -35,7 +35,6 @@ const requireAuth = (req, res, next) => {
   if (!credentials || 
       credentials.name !== CONFIG.adminUser || 
       credentials.pass !== CONFIG.adminPass) {
-    res.set('WWW-Authenticate', 'Basic realm="Cashu Admin"');
     return res.status(401).json({ error: 'Unauthorized' });
   }
   next();
