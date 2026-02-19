@@ -1,248 +1,161 @@
 # Cashu Nutshell Admin UI
 
-A modern, dark-themed admin dashboard for managing Cashu Nutshell mints. This UI provides comprehensive mint management capabilities including monitoring, settings configuration, key rotation, and admin operations like issuing ecash without payment.
+A web-based administration dashboard for [Cashu Nutshell](https://github.com/cashubtc/nutshell) mints. Monitor activity, manage settings, rotate keysets, and perform admin operations from a modern dark-themed interface.
 
-![Dashboard Preview](https://via.placeholder.com/800x400?text=Cashu+Admin+UI+Dashboard)
+![Dashboard](screenshots/dashboard.png)
 
 ## Features
 
-### 📊 Dashboard
-- Real-time mint status overview
-- Active keysets count
-- System resource monitoring (memory, CPU)
-- Mint information display
+- **Dashboard** — Mint status, version, active keysets, uptime, memory/CPU usage at a glance
+- **Real-time monitoring** — WebSocket-powered live metrics, request tracking, operation counters
+- **Settings management** — Configure mint info, limits, fees, and contact details via tabbed UI
+- **Keyset management** — View active keysets, trigger key rotation with custom parameters
+- **Admin actions** — Free mint (issue ecash without payment), quote state overrides, cache clearing
+- **Activity log** — Filterable transaction history (mint/melt/swap/checkstate)
+- **Live logs** — Streaming server logs with level/source filtering and auto-scroll
+- **Authentication** — HTTP Basic Auth with configurable credentials
+- **Docker ready** — Dockerfile and docker-compose.yml included
 
-### 📈 Monitoring
-- Live request tracking
-- Operation type breakdown (mint, melt, swap, checkstate)
-- Recent requests table with timestamps
-- Simulate activity for testing
-
-### ⚙️ Settings Management
-- **Mint Info**: Name, description, icon, TOS URL
-- **Limits**: Max mint/melt amounts, rate limiting
-- **Fees**: Lightning fee percentage, reserve minimum
-- **Contact**: Email, Twitter, Telegram, Nostr, MOTD
-
-### 🔑 Keyset Management
-- View all active keysets
-- Perform key rotation with custom parameters
-- Input fee configuration
-
-### 🔧 Admin Actions
-- **Key Rotation**: Rotate to new keysets for improved security
-- **Free Mint**: Issue ecash without Lightning payment (use with caution!)
-- **Quote Management**: Manually update mint/melt quote states
-- **Cache Clearing**: Clear Redis cache and monitoring data
-
-### 📋 Activity Log
-- Complete transaction history
-- Filter by operation type
-- IP address tracking
-
-## Requirements
-
-- Node.js 16+ 
-- Cashu Nutshell mint running (optional, for full functionality)
-- Access to mint API (REST at port 3338, gRPC at port 8086)
-
-## Installation
+## Quick Start
 
 ```bash
-# Clone or navigate to the project directory
-cd /Users/dread/.openclaw/workspace/cashu-admin-ui
-
-# Install dependencies
+git clone <repo-url> cashu-admin-ui
+cd cashu-admin-ui
+cp .env.example .env    # edit as needed
 npm install
-```
-
-## Configuration
-
-Set environment variables to customize the admin UI:
-
-```bash
-export PORT=3339                    # Admin UI port (default: 3339)
-export MINT_URL=http://127.0.0.1:3338  # Mint API URL
-export MINT_GRPC_PORT=8086          # Mint gRPC port
-export ADMIN_USER=admin             # Admin username
-export ADMIN_PASS=your_secure_pass  # Admin password
-export AUTH_TYPE=basic              # 'basic', 'token', or 'none'
-```
-
-Or create a `.env` file:
-
-```env
-PORT=3339
-MINT_URL=http://127.0.0.1:3338
-MINT_GRPC_PORT=8086
-ADMIN_USER=admin
-ADMIN_PASS=admin123
-AUTH_TYPE=basic
-```
-
-## Usage
-
-### Start the Admin UI
-
-```bash
 npm start
 ```
 
-The admin UI will be available at `http://localhost:3339`
+Open `http://localhost:3339` — login with `admin` / `admin123` (default).
 
-### Default Login
+## Docker
 
-- **Username**: `admin`
-- **Password**: `admin123`
+### Standalone
 
-Change these via environment variables for production use.
+```bash
+docker build -t cashu-admin-ui .
+docker run -d -p 3339:3339 \
+  -e MINT_URL=http://your-mint:3338 \
+  -e ADMIN_USER=admin \
+  -e ADMIN_PASS=changeme \
+  cashu-admin-ui
+```
+
+### With Nutshell mint (docker-compose)
+
+```bash
+docker-compose up -d
+```
+
+This starts both the admin UI on port `3339` and a Nutshell mint (FakeWallet backend) on port `3338`. To connect to your existing mint, update `MINT_URL` in `docker-compose.yml`.
+
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `3339` | Admin UI server port |
+| `MINT_URL` | `http://127.0.0.1:3338` | Nutshell mint API URL |
+| `MINT_GRPC_PORT` | `8086` | Mint gRPC management port (reserved for future use) |
+| `ADMIN_USER` | `admin` | Basic auth username |
+| `ADMIN_PASS` | `admin123` | Basic auth password |
+| `AUTH_TYPE` | `basic` | Auth mode: `basic`, `token`, or `none` |
+
+## Architecture
+
+```
+┌──────────────┐       ┌──────────────────┐       ┌──────────────┐
+│   Browser    │◄─────►│  Express Server   │◄─────►│  Nutshell    │
+│  (SPA)       │  WS   │  (server.js)      │ HTTP  │  Mint API    │
+│              │  HTTP  │                   │       │  /v1/*       │
+└──────────────┘       └──────────────────┘       └──────────────┘
+```
+
+- **Server**: Express.js with HTTP + WebSocket on a single port. Acts as a reverse proxy to the Nutshell mint's `/v1/*` endpoints and exposes admin-specific `/api/admin/*` routes.
+- **Frontend**: Vanilla HTML/CSS/JS single-page app in `public/`. No build step.
+- **WebSocket**: Pushes live stats (memory, uptime, requests) every 5 seconds and streams log entries in real time.
+- **Auth**: HTTP Basic Auth middleware on all `/api/*` routes. Credentials stored in browser localStorage (base64).
+
+## Pages
+
+| Page | Description |
+|---|---|
+| **Dashboard** | Mint status, version, keyset count, uptime, memory/CPU bars, mint info card |
+| **Monitoring** | Live request counters (mint/melt/swap), recent requests table, simulate activity |
+| **Settings** | Tabbed forms: Mint Info, Limits, Fees, Contact/MOTD |
+| **Keysets** | Active keysets table, key rotation form (unit, max order, input fee) |
+| **Admin Actions** | Key rotation trigger, free mint modal, quote state management, cache clearing |
+| **Activity** | Filterable activity log with timestamps, types, amounts, IPs |
+| **Logs** | Streaming log viewer with level/source filters, auto-scroll, clear |
 
 ## API Endpoints
 
-### Mint API (Proxied)
+All endpoints require authentication (unless `AUTH_TYPE=none`).
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/mint/info` | Mint information |
-| `GET /api/mint/keys` | Public keys |
-| `GET /api/mint/keysets` | Active keysets |
+### Mint Proxy
 
-### Admin API
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/mint/info` | Proxy to `/v1/info` |
+| GET | `/api/mint/keys` | Proxy to `/v1/keys` |
+| GET | `/api/mint/keysets` | Proxy to `/v1/keysets` |
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `GET /api/admin/dashboard` | GET | Dashboard overview |
-| `GET /api/admin/system` | GET | System statistics |
-| `GET /api/admin/monitoring` | GET | Monitoring data |
-| `POST /api/admin/monitoring/clear` | POST | Clear monitoring data |
-| `GET /api/admin/settings` | GET | Current settings |
-| `POST /api/admin/settings/info` | POST | Update mint info |
-| `POST /api/admin/settings/motd` | POST | Update MOTD |
-| `POST /api/admin/settings/limits` | POST | Update limits |
-| `POST /api/admin/settings/fees` | POST | Update fees |
-| `POST /api/admin/settings/contact` | POST | Update contact info |
-| `POST /api/admin/keyset/rotate` | POST | Rotate keyset |
-| `POST /api/admin/mint/free` | POST | Mint ecash without payment |
-| `POST /api/admin/quote/mint` | POST | Update mint quote state |
-| `POST /api/admin/quote/melt` | POST | Update melt quote state |
-| `GET /api/admin/activity` | GET | Activity log |
-| `POST /api/admin/activity/simulate` | POST | Simulate activity |
+### Admin
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/admin/dashboard` | Aggregated dashboard data (info + keys + keysets + config) |
+| GET | `/api/admin/system` | Node.js process stats (uptime, memory, CPU) |
+| GET | `/api/admin/monitoring` | Request monitoring data |
+| POST | `/api/admin/monitoring/clear` | Reset monitoring counters |
+| GET | `/api/admin/settings` | Current mint settings from environment |
+| POST | `/api/admin/settings/info` | Update mint name, description, icon, TOS |
+| POST | `/api/admin/settings/motd` | Update message of the day |
+| POST | `/api/admin/settings/contact` | Add/update contact method |
+| POST | `/api/admin/settings/url` | Add/remove mint URL |
+| POST | `/api/admin/settings/limits` | Update mint/melt/balance limits and rate limits |
+| POST | `/api/admin/settings/fees` | Update fee percentage and reserve minimum |
+| POST | `/api/admin/keyset/rotate` | Trigger keyset rotation |
+| POST | `/api/admin/mint/free` | Issue ecash without payment |
+| POST | `/api/admin/quote/mint` | Override mint quote state |
+| POST | `/api/admin/quote/melt` | Override melt quote state |
+| GET | `/api/admin/activity` | Recent activity (filterable by type) |
+| POST | `/api/admin/activity/simulate` | Generate simulated activity for testing |
+| GET | `/api/admin/logs` | Fetch log entries (filterable by level, source, since) |
+| POST | `/api/admin/logs/clear` | Clear log buffer |
 
 ### WebSocket
 
-Connect to `ws://localhost:3339` for real-time updates:
+Connect to `ws://localhost:3339`. Receives:
+- `{ type: "connected" }` — on connection
+- `{ type: "stats", data: {...} }` — every 5 seconds (memory, uptime, recent requests)
+- `{ type: "log", data: {...} }` — real-time log entries
 
-```json
-{
-  "type": "stats",
-  "data": {
-    "memory": { ... },
-    "uptime": 1234,
-    "requests": [ ... ],
-    "timestamp": 1234567890
-  }
-}
-```
+## Security
 
-## Integration with Nutshell Mint
-
-### Enabling gRPC Management Server
-
-For full admin functionality, enable the gRPC server in your Nutshell `.env`:
-
-```env
-MINT_RPC_SERVER_ENABLE=true
-MINT_RPC_SERVER_ADDR=localhost
-MINT_RPC_SERVER_PORT=8086
-MINT_RPC_SERVER_CA=./ca_cert.pem
-MINT_RPC_SERVER_CERT=./server_cert.pem
-MINT_RPC_SERVER_KEY=./server_key.pem
-MINT_RPC_SERVER_MUTUAL_TLS=true
-```
-
-### Using with Docker
-
-```bash
-# Run Cashu Admin UI
-docker run -d \
-  -p 3339:3339 \
-  -e MINT_URL=http://mint:3338 \
-  -e ADMIN_USER=admin \
-  -e ADMIN_PASS=securepassword \
-  cashu-admin-ui
-
-# Run alongside your mint
-docker compose up -d
-```
-
-## Security Considerations
-
-⚠️ **Important Security Notes:**
-
-1. **Default Credentials**: Change default admin credentials in production
-2. **Network Isolation**: Run on internal network or behind VPN
-3. **Authentication**: Enable `AUTH_TYPE=basic` for production
-4. **TLS**: Use reverse proxy with HTTPS for production
-5. **Free Mint**: The free mint feature bypasses payment - use with extreme caution!
+- **Change default credentials** before deploying. Set `ADMIN_USER` and `ADMIN_PASS` in your environment.
+- **Run behind a reverse proxy** (nginx, Caddy) with TLS in production.
+- Set `AUTH_TYPE=none` only for local development.
+- The admin UI should not be exposed to the public internet without proper access controls.
 
 ## Development
 
+The project has no build step. Edit files directly:
+
+- `server.js` — Express server, API routes, WebSocket handler
+- `public/index.html` — All page markup (SPA with show/hide sections)
+- `public/styles.css` — Dark theme, responsive layout, all component styles
+- `public/app.js` — `CashuAdmin` class handling auth, API calls, WebSocket, UI updates
+
 ```bash
-# Run in development mode with auto-reload
-npm run dev
-
-# Access at http://localhost:3339
+npm start   # runs node server.js
 ```
 
-## Project Structure
-
-```
-cashu-admin-ui/
-├── server.js           # Express server with API endpoints
-├── package.json        # Dependencies and scripts
-├── public/
-│   ├── index.html      # Main HTML page
-│   ├── styles.css      # Dark theme styles
-│   └── app.js          # Frontend JavaScript
-└── README.md            # This file
-```
-
-## Nutshell Bounty Compliance
-
-This admin UI fulfills the requirements from the GitHub issue #556:
-
-✅ **Change settings of the mint and apply them**
-- Via Settings page with form inputs
-- Note: Some settings require mint restart
-
-✅ **Observe activity of the mint**
-- Real-time monitoring via WebSocket
-- Activity log with filtering
-
-✅ **Basic monitoring (DB entries, requests, disk, CPU)**
-- Request tracking and statistics
-- System resource monitoring
-- Activity table
-
-✅ **Admin actions: trigger key rotation, issue ecash without payment**
-- Key rotation with custom parameters
-- Free mint modal for admin ecash issuance
-
-✅ **Technical constraints met**
-- Separate daemon (Node.js server)
-- REST API communication with mint
-- WebSocket for real-time updates
-- Token/password authentication
+Changes to `public/*` are served immediately. Server changes require restart.
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT
 
 ## Contributing
 
-Contributions are welcome! Please open issues or submit pull requests.
-
-## Acknowledgments
-
-- [Cashu](https://cashu.space/) - Chaumian Ecash protocol
-- [Nutshell](https://github.com/cashubtc/nutshell) - Reference mint implementation
+Contributions welcome. Open an issue or submit a pull request.
