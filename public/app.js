@@ -816,26 +816,22 @@ class CashuAdmin {
       }
     });
 
-    // Mint Management buttons
+    // Mint Management buttons — use result modal instead of confirm/toast
     document.getElementById('action-restart-mint')?.addEventListener('click', async () => {
-      if (confirm('Are you sure you want to restart the mint? This will cause brief downtime.')) {
-        try {
-          const result = await this.fetchWithAuth('/api/admin/mint/restart', { method: 'POST' });
-          this.showToast(result.message, 'success');
-        } catch (error) {
-          this.showToast('Restart failed: ' + error.message, 'error');
-        }
+      try {
+        const result = await this.fetchWithAuth('/api/admin/mint/restart', { method: 'POST' });
+        this.showResultModal('Restart Mint', result);
+      } catch (error) {
+        this.showResultModal('Restart Mint — Error', { error: error.message });
       }
     });
 
     document.getElementById('action-update-mint')?.addEventListener('click', async () => {
-      if (confirm('Update the mint to the latest version? This will restart the mint after updating.')) {
-        try {
-          const result = await this.fetchWithAuth('/api/admin/mint/update', { method: 'POST' });
-          this.showToast(result.message, 'success');
-        } catch (error) {
-          this.showToast('Update failed: ' + error.message, 'error');
-        }
+      try {
+        const result = await this.fetchWithAuth('/api/admin/mint/update', { method: 'POST' });
+        this.showResultModal('Update Mint', result);
+      } catch (error) {
+        this.showResultModal('Update Mint — Error', { error: error.message });
       }
     });
     
@@ -975,6 +971,58 @@ class CashuAdmin {
     return div.innerHTML;
   }
   
+  /**
+   * Show a modal with structured action results.
+   * Used for mint management actions (restart, update) where the response
+   * contains deployment-specific instructions that need to be read.
+   */
+  showResultModal(title, data) {
+    // Remove existing result modal if any
+    document.getElementById('result-modal')?.remove();
+
+    let bodyHtml = '';
+    if (data.message) {
+      bodyHtml += `<p style="margin-bottom: 16px;">${this.escapeHtml(data.message)}</p>`;
+    }
+    if (data.hint) {
+      bodyHtml += `<p style="margin-bottom: 16px; opacity: 0.7; font-size: 0.9em;">💡 ${this.escapeHtml(data.hint)}</p>`;
+    }
+    if (data.methods) {
+      bodyHtml += `<div style="margin-top: 12px;">`;
+      bodyHtml += `<p style="font-weight: 600; margin-bottom: 8px;">Deployment methods:</p>`;
+      for (const [method, cmd] of Object.entries(data.methods)) {
+        bodyHtml += `<div style="margin-bottom: 8px;">`;
+        bodyHtml += `<span style="color: var(--accent-primary); font-weight: 500;">${this.escapeHtml(method)}:</span> `;
+        bodyHtml += `<code style="background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">${this.escapeHtml(cmd)}</code>`;
+        bodyHtml += `</div>`;
+      }
+      bodyHtml += `</div>`;
+    }
+    if (data.error) {
+      bodyHtml += `<p style="color: #f85149;">Error: ${this.escapeHtml(data.error)}</p>`;
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'result-modal';
+    modal.className = 'modal visible';
+    modal.style.cssText = 'display:flex; align-items:center; justify-content:center; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:1000;';
+    modal.innerHTML = `
+      <div style="background: var(--bg-secondary, #1c1c1e); border: 1px solid var(--border, #333); border-radius: 12px; padding: 24px 28px; max-width: 560px; width: 90%; max-height: 80vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2 style="margin: 0; font-size: 1.2em;">${this.escapeHtml(title)}</h2>
+          <button id="result-modal-close" style="background: none; border: none; color: var(--text-secondary, #999); font-size: 1.5em; cursor: pointer; padding: 0 4px;">&times;</button>
+        </div>
+        ${bodyHtml}
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Close handlers
+    modal.querySelector('#result-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  }
+
   showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
