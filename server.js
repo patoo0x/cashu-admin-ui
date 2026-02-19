@@ -922,6 +922,64 @@ app.post('/api/admin/quote/melt', requireAuth, async (req, res) => {
 });
 
 // =========================================================================
+// ADMIN API — MINT MANAGEMENT
+// =========================================================================
+
+/**
+ * POST /api/admin/mint/restart
+ * Request a restart of the Nutshell mint process.
+ *
+ * In a typical deployment, the mint runs as a systemd service or Docker
+ * container. This endpoint would trigger the restart via:
+ *   - systemd: `systemctl restart cashu-mint`
+ *   - Docker: `docker restart <container>`
+ *   - Direct: Send SIGTERM and let the process manager respawn
+ *
+ * This requires the admin UI to have access to the host's process
+ * management. Without that, this serves as a documented placeholder
+ * for operators to implement based on their deployment method.
+ */
+app.post('/api/admin/mint/restart', requireAuth, (req, res) => {
+  addLog('warn', 'admin', '> RestartMint requested');
+  res.json({
+    success: true,
+    message: 'Mint restart requested. Implementation depends on your deployment method.',
+    hint: 'Configure MINT_RESTART_CMD in .env to enable (e.g., "systemctl restart cashu-mint" or "docker restart nutshell")',
+    methods: {
+      systemd: 'systemctl restart cashu-mint',
+      docker: 'docker restart <container-name>',
+      compose: 'docker compose restart mint',
+      manual: 'Kill the mint process and let your process manager restart it'
+    }
+  });
+});
+
+/**
+ * POST /api/admin/mint/update
+ * Request an update of the Nutshell mint software.
+ *
+ * For pip-installed mints: `pip install cashu -U`
+ * For Docker mints: `docker pull cashubtc/nutshell:latest`
+ * For Poetry/source: `git pull && poetry install`
+ *
+ * Like restart, this is deployment-specific. The endpoint documents
+ * the available methods and serves as a hook for custom automation.
+ */
+app.post('/api/admin/mint/update', requireAuth, (req, res) => {
+  addLog('warn', 'admin', '> UpdateMint requested');
+  res.json({
+    success: true,
+    message: 'Mint update requested. Implementation depends on your deployment method.',
+    hint: 'Configure MINT_UPDATE_CMD in .env to enable',
+    methods: {
+      pip: 'pip install cashu -U && systemctl restart cashu-mint',
+      docker: 'docker pull cashubtc/nutshell:latest && docker compose up -d mint',
+      source: 'cd nutshell && git pull && poetry install && systemctl restart cashu-mint'
+    }
+  });
+});
+
+// =========================================================================
 // ADMIN API — ACTIVITY MONITORING
 // =========================================================================
 

@@ -206,7 +206,11 @@ class CashuAdmin {
       document.getElementById('active-keysets').textContent = keysetsCount;
       
       // Version
-      document.getElementById('mint-version').textContent = data.mintInfo?.version || '--';
+      const version = data.mintInfo?.version || '--';
+      document.getElementById('mint-version').textContent = version;
+      // Also show current version in the Update card
+      const updateVersionEl = document.getElementById('update-current-version');
+      if (updateVersionEl) updateVersionEl.textContent = version;
       
       // Mint info
       if (data.mintInfo) {
@@ -238,32 +242,59 @@ class CashuAdmin {
     }
   }
   
+  /**
+   * Load settings by fetching LIVE data from the mint's /v1/info endpoint,
+   * then falling back to admin UI env vars for fields the mint doesn't expose
+   * (limits, fees, backend). This ensures form fields show the actual current
+   * mint configuration, not stale environment defaults.
+   */
   async loadSettings() {
     try {
-      const settings = await this.fetchWithAuth('/api/admin/settings');
-      
-      if (settings.mintInfo) {
-        document.getElementById('setting-name').value = settings.mintInfo.name || '';
-        document.getElementById('setting-description').value = settings.mintInfo.description || '';
-        document.getElementById('setting-description-long').value = settings.mintInfo.descriptionLong || '';
-        document.getElementById('setting-icon-url').value = settings.mintInfo.iconUrl || '';
-        document.getElementById('setting-tos-url').value = settings.mintInfo.tosUrl || '';
-        document.getElementById('setting-motd').value = settings.mintInfo.motd || '';
+      // Fetch live mint info first — this is the source of truth
+      const mintInfo = await this.fetchWithAuth('/api/mint/info').catch(() => null);
+
+      // Populate Mint Info tab from live mint data
+      if (mintInfo) {
+        document.getElementById('setting-name').value = mintInfo.name || '';
+        document.getElementById('setting-description').value = mintInfo.description || '';
+        document.getElementById('setting-description-long').value = mintInfo.description_long || '';
+        document.getElementById('setting-icon-url').value = mintInfo.icon_url || '';
+        document.getElementById('setting-tos-url').value = mintInfo.tos_url || '';
+        document.getElementById('setting-motd').value = mintInfo.motd || '';
       }
-      
-      if (settings.limits) {
+
+      // Populate Contact tab from live mint contact list
+      if (mintInfo?.contact && mintInfo.contact.length > 0) {
+        // Show the first contact method in the form fields
+        const firstContact = mintInfo.contact[0];
+        document.getElementById('contact-method').value = firstContact.method || '';
+        document.getElementById('contact-info').value = firstContact.info || '';
+
+        // Build a summary of all contacts below the form
+        const contactList = document.getElementById('existing-contacts');
+        if (contactList) {
+          contactList.innerHTML = mintInfo.contact.map(c =>
+            `<div class="contact-entry"><strong>${c.method}:</strong> ${c.info}</div>`
+          ).join('');
+        }
+      }
+
+      // Limits and fees come from admin UI env vars (not exposed by /v1/info)
+      const settings = await this.fetchWithAuth('/api/admin/settings').catch(() => null);
+
+      if (settings?.limits) {
         document.getElementById('setting-max-mint').value = settings.limits.maxMint || '';
         document.getElementById('setting-max-melt').value = settings.limits.maxMelt || '';
         document.getElementById('setting-max-balance').value = settings.limits.maxBalance || '';
         document.getElementById('setting-global-rate').value = settings.limits.globalRateLimit || 60;
         document.getElementById('setting-tx-rate').value = settings.limits.transactionRateLimit || 20;
       }
-      
-      if (settings.fees) {
+
+      if (settings?.fees) {
         document.getElementById('setting-fee-percent').value = settings.fees.percent || '';
         document.getElementById('setting-fee-reserve').value = settings.fees.reserveMin || '';
       }
-      
+
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -782,6 +813,29 @@ class CashuAdmin {
     document.getElementById('action-clear-cache').addEventListener('click', async () => {
       if (confirm('Clear all cache and monitoring data?')) {
         await this.clearMonitoring();
+      }
+    });
+
+    // Mint Management buttons
+    document.getElementById('action-restart-mint')?.addEventListener('click', async () => {
+      if (confirm('Are you sure you want to restart the mint? This will cause brief downtime.')) {
+        try {
+          const result = await this.fetchWithAuth('/api/admin/mint/restart', { method: 'POST' });
+          this.showToast(result.message, 'success');
+        } catch (error) {
+          this.showToast('Restart failed: ' + error.message, 'error');
+        }
+      }
+    });
+
+    document.getElementById('action-update-mint')?.addEventListener('click', async () => {
+      if (confirm('Update the mint to the latest version? This will restart the mint after updating.')) {
+        try {
+          const result = await this.fetchWithAuth('/api/admin/mint/update', { method: 'POST' });
+          this.showToast(result.message, 'success');
+        } catch (error) {
+          this.showToast('Update failed: ' + error.message, 'error');
+        }
       }
     });
     

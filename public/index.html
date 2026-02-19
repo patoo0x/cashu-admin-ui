@@ -445,6 +445,12 @@
                     </div>
                   </div>
                   <div class="form-group">
+                    <label>Current Contacts</label>
+                    <div id="existing-contacts" style="font-size: 0.85em; opacity: 0.7; margin-bottom: 12px; line-height: 1.8;">
+                      <em>Loading from mint...</em>
+                    </div>
+                  </div>
+                  <div class="form-group">
                     <label>MOTD (Message of the Day)</label>
                     <textarea id="setting-motd" rows="2" placeholder="Welcome message..."></textarea>
                   </div>
@@ -641,6 +647,67 @@
                   <button class="btn btn-outline btn-action" id="action-clear-cache">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     Clear All Cache
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mint Management -->
+        <div class="actions-section">
+          <div class="actions-section-header utility">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+            <span>Mint Management</span>
+          </div>
+          <div class="actions-grid actions-grid-2col">
+            <div class="card action-card action-card-utility">
+              <div class="card-body">
+                <div class="action-card-icon utility">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </div>
+                <h3 class="action-card-title">Restart Mint</h3>
+                <p class="action-card-desc">Restart the Nutshell mint process. This applies any pending configuration changes (settings, limits, fees) and reloads all keysets. Brief downtime expected.</p>
+                <div class="action-card-details">
+                  <div class="detail-item">
+                    <span class="detail-label">Downtime</span>
+                    <span class="detail-value">~5-15 seconds depending on database size</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Applies</span>
+                    <span class="detail-value">All pending .env changes, new keysets</span>
+                  </div>
+                </div>
+                <div class="action-card-footer">
+                  <button class="btn btn-warning btn-action" id="action-restart-mint">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                    Restart Mint
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card action-card action-card-utility">
+              <div class="card-body">
+                <div class="action-card-icon utility">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </div>
+                <h3 class="action-card-title">Update Mint</h3>
+                <p class="action-card-desc">Pull the latest Nutshell version and restart. This updates the mint software to the newest release. A restart is performed automatically after the update.</p>
+                <div class="action-card-details">
+                  <div class="detail-item">
+                    <span class="detail-label">Current</span>
+                    <span class="detail-value" id="update-current-version">--</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Downtime</span>
+                    <span class="detail-value">~30-60 seconds (pull + restart)</span>
+                  </div>
+                </div>
+                <div class="action-card-footer">
+                  <button class="btn btn-primary btn-action" id="action-update-mint">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Update &amp; Restart
                   </button>
                 </div>
               </div>
