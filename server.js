@@ -6,7 +6,10 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const auth = require('basic-auth');
 const fs = require('fs');
+const os = require('os');
+const { execSync } = require('child_process');
 const path = require('path');
+const promClient = require('prom-client');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,6 +24,113 @@ const CONFIG = {
   adminPass: process.env.ADMIN_PASS || 'admin123',
   authType: process.env.AUTH_TYPE || 'basic' // 'basic', 'token', or 'none'
 };
+
+// ============ PROMETHEUS METRICS ============
+const register = new promClient.Registry();
+promClient.collectDefaultMetrics({ register, prefix: 'cashu_admin_' });
+
+const mintRequestsTotal = new promClient.Counter({
+  name: 'cashu_mint_requests_total',
+  help: 'Total mint operation requests observed',
+  labelNames: ['type'],
+  registers: [register]
+});
+
+const mintActiveKeysets = new promClient.Gauge({
+  name: 'cashu_mint_active_keysets',
+  help: 'Number of active keysets',
+  registers: [register]
+});
+
+const mintUp = new promClient.Gauge({
+  name: 'cashu_mint_up',
+  help: 'Whether the mint is reachable (1=up, 0=down)',
+  registers: [register]
+});
+
+const osDiskFreeBytes = new promClient.Gauge({
+  name: 'cashu_admin_os_disk_free_bytes',
+  help: 'Free disk space in bytes',
+  registers: [register]
+});
+
+const osDiskTotalBytes = new promClient.Gauge({
+  name: 'cashu_admin_os_disk_total_bytes',
+  help: 'Total disk space in bytes',
+  registers: [register]
+});
+
+const osLoadAvg = new promClient.Gauge({
+  name: 'cashu_admin_os_load_avg',
+  help: 'OS load average',
+  labelNames: ['period'],
+  registers: [register]
+});
+
+// ============ OS STATS HELPER ============
+function getOsStats() {
+  const cpus = os.cpus();
+  const loadAvg = os.loadavg();
+  const totalMem = os.totalmem();
+  const freeMem = os.freemem();
+
+  // Disk space (cross-platform)
+  let diskFree = null, diskTotal = null, diskUsedPercent = null;
+  try {
+    if (process.platform === 'win32') {
+      const out = execSync('wmic logicaldisk get size,freespace /format:csv', { encoding: 'utf8', timeout: 3000 });
+      const lines = out.trim().split('\n').filter(l => l.includes(','));
+      if (lines.length > 1) {
+        const parts = lines[1].split(',');
+        diskFree = parseInt(parts[1]);
+        diskTotal = parseInt(parts[2]);
+      }
+    } else {
+      const out = execSync("df -k / | tail -1 | awk '{print $2, $4}'", { encoding: 'utf8', timeout: 3000 });
+      const [totalK, freeK] = out.trim().split(/\s+/).map(Number);
+      diskTotal = totalK * 1024;
+      diskFree = freeK * 1024;
+    }
+    if (diskTotal && diskFree) {
+      diskUsedPercent = ((1 - diskFree / diskTotal) * 100).toFixed(1);
+      osDiskFreeBytes.set(diskFree);
+      osDiskTotalBytes.set(diskTotal);
+    }
+  } catch (e) { /* disk stats unavailable */ }
+
+  // CPU usage percentage (simple sample)
+  let cpuPercent = null;
+  try {
+    const idle = cpus.reduce((acc, c) => acc + c.times.idle, 0) / cpus.length;
+    const total = cpus.reduce((acc, c) => acc + Object.values(c.times).reduce((a, b) => a + b, 0), 0) / cpus.length;
+    cpuPercent = ((1 - idle / total) * 100).toFixed(1);
+  } catch (e) { /* cpu stats unavailable */ }
+
+  // Update Prometheus gauges
+  osLoadAvg.set({ period: '1m' }, loadAvg[0]);
+  osLoadAvg.set({ period: '5m' }, loadAvg[1]);
+  osLoadAvg.set({ period: '15m' }, loadAvg[2]);
+
+  return {
+    hostname: os.hostname(),
+    platform: os.platform(),
+    arch: os.arch(),
+    release: os.release(),
+    cpuCount: cpus.length,
+    cpuModel: cpus[0]?.model || 'unknown',
+    cpuPercent: cpuPercent ? parseFloat(cpuPercent) : null,
+    loadAvg: { '1m': loadAvg[0], '5m': loadAvg[1], '15m': loadAvg[2] },
+    totalMemory: totalMem,
+    freeMemory: freeMem,
+    usedMemoryPercent: parseFloat(((1 - freeMem / totalMem) * 100).toFixed(1)),
+    diskTotal,
+    diskFree,
+    diskUsedPercent: diskUsedPercent ? parseFloat(diskUsedPercent) : null,
+    uptime: os.uptime(),
+    nodeVersion: process.version,
+    pid: process.pid
+  };
+}
 
 // Middleware
 app.use(cors());
@@ -149,12 +259,21 @@ app.get('/api/admin/dashboard', requireAuth, async (req, res) => {
     const info = await axios.get(`${CONFIG.mintUrl}/v1/info`).catch((e) => { addLog('warn', 'proxy', `Dashboard /v1/info failed: ${e.message}`); return { data: null }; });
     const keys = await axios.get(`${CONFIG.mintUrl}/v1/keys`).catch((e) => { addLog('warn', 'proxy', `Dashboard /v1/keys failed: ${e.message}`); return { data: null }; });
     const keysets = await axios.get(`${CONFIG.mintUrl}/v1/keysets`).catch((e) => { addLog('warn', 'proxy', `Dashboard /v1/keysets failed: ${e.message}`); return { data: null }; });
+
+    // Update Prometheus gauges
+    mintUp.set(info.data ? 1 : 0);
+    const keysetsCount = keysets.data?.keysets?.filter(k => k.active)?.length || 0;
+    mintActiveKeysets.set(keysetsCount);
+
+    // Get OS-level stats
+    const osStats = getOsStats();
     
     res.json({
       mintInfo: info.data,
       keys: keys.data,
       keysets: keysets.data,
       monitoring: monitoringData,
+      os: osStats,
       config: {
         mintUrl: CONFIG.mintUrl,
         authType: CONFIG.authType
@@ -165,13 +284,31 @@ app.get('/api/admin/dashboard', requireAuth, async (req, res) => {
   }
 });
 
-// Get system stats
+// Prometheus metrics endpoint (no auth — standard for scraping)
+app.get('/metrics', async (req, res) => {
+  try {
+    // Refresh OS metrics before scrape
+    getOsStats();
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (error) {
+    res.status(500).end(error.message);
+  }
+});
+
+// Get system stats (detailed OS + process info)
 app.get('/api/admin/system', requireAuth, (req, res) => {
   try {
+    const osStats = getOsStats();
     const stats = {
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      cpu: process.cpuUsage(),
+      process: {
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        cpu: process.cpuUsage(),
+        pid: process.pid,
+        nodeVersion: process.version
+      },
+      os: osStats,
       timestamp: Date.now()
     };
     res.json(stats);
@@ -445,14 +582,16 @@ wss.on('connection', (ws) => {
     timestamp: Date.now()
   }));
   
-  // Simulate periodic updates
+  // Periodic stats push with OS metrics
   const interval = setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) {
+      const osStats = getOsStats();
       ws.send(JSON.stringify({
         type: 'stats',
         data: {
           memory: process.memoryUsage(),
           uptime: process.uptime(),
+          os: osStats,
           requests: monitoringData.requests.slice(-10),
           timestamp: Date.now()
         }

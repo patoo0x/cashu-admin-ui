@@ -187,6 +187,11 @@ class CashuAdmin {
         document.getElementById('info-motd').textContent = data.mintInfo.motd || '--';
       }
       
+      // Load OS stats
+      if (data.os) {
+        this.updateOsStats(data.os);
+      }
+      
       // Load settings
       await this.loadSettings();
       
@@ -264,28 +269,74 @@ class CashuAdmin {
     document.getElementById('admin-uptime').textContent = 
       hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
     
-    // Update memory
-    if (data.memory) {
-      const used = data.memory.heapUsed / 1024 / 1024;
-      const total = data.memory.heapTotal / 1024 / 1024;
-      const percent = (used / total * 100).toFixed(1);
-      document.getElementById('mem-usage').textContent = `${used.toFixed(1)} / ${total.toFixed(1)} MB`;
-      document.getElementById('mem-bar').style.width = `${percent}%`;
-      
-      // Color based on usage
-      const memBar = document.getElementById('mem-bar');
-      if (percent > 80) {
-        memBar.style.background = '#f85149';
-      } else if (percent > 60) {
-        memBar.style.background = '#d29922';
-      } else {
-        memBar.style.background = '#58a6ff';
+    // Update OS stats if available
+    if (data.os) {
+      this.updateOsStats(data.os);
+    }
+  }
+  
+  updateOsStats(os) {
+    // OS Memory
+    if (os.totalMemory && os.freeMemory) {
+      const used = (os.totalMemory - os.freeMemory) / 1024 / 1024 / 1024;
+      const total = os.totalMemory / 1024 / 1024 / 1024;
+      const percent = os.usedMemoryPercent || ((1 - os.freeMemory / os.totalMemory) * 100);
+      const el = document.getElementById('os-mem-usage');
+      if (el) el.textContent = `${used.toFixed(1)} / ${total.toFixed(1)} GB (${percent.toFixed(1)}%)`;
+      const bar = document.getElementById('os-mem-bar');
+      if (bar) {
+        bar.style.width = `${percent}%`;
+        bar.style.background = percent > 80 ? '#f85149' : percent > 60 ? '#d29922' : 'linear-gradient(90deg, var(--accent-primary), #9d6de6)';
       }
     }
+
+    // CPU
+    if (os.cpuPercent !== null && os.cpuPercent !== undefined) {
+      const cpuEl = document.getElementById('cpu-usage');
+      if (cpuEl) cpuEl.textContent = `${os.cpuPercent}%`;
+      const cpuBar = document.getElementById('cpu-bar');
+      if (cpuBar) {
+        cpuBar.style.width = `${Math.min(os.cpuPercent, 100)}%`;
+        cpuBar.style.background = os.cpuPercent > 80 ? '#f85149' : os.cpuPercent > 60 ? '#d29922' : 'linear-gradient(90deg, var(--accent-primary), #9d6de6)';
+      }
+    }
+
+    // Disk
+    if (os.diskTotal && os.diskFree) {
+      const usedDisk = (os.diskTotal - os.diskFree) / 1024 / 1024 / 1024;
+      const totalDisk = os.diskTotal / 1024 / 1024 / 1024;
+      const diskPercent = os.diskUsedPercent || ((1 - os.diskFree / os.diskTotal) * 100);
+      const diskEl = document.getElementById('disk-usage');
+      if (diskEl) diskEl.textContent = `${usedDisk.toFixed(1)} / ${totalDisk.toFixed(1)} GB (${diskPercent}%)`;
+      const diskBar = document.getElementById('disk-bar');
+      if (diskBar) {
+        diskBar.style.width = `${diskPercent}%`;
+        diskBar.style.background = diskPercent > 90 ? '#f85149' : diskPercent > 75 ? '#d29922' : 'linear-gradient(90deg, var(--accent-primary), #9d6de6)';
+      }
+    }
+
+    // System info
+    const hostnameEl = document.getElementById('hostname-info');
+    if (hostnameEl && os.hostname) hostnameEl.textContent = os.hostname;
     
-    // Update platform info
-    document.getElementById('node-version').textContent = process.version.slice(1);
-    document.getElementById('platform-info').textContent = `${process.platform} ${process.arch}`;
+    const platformEl = document.getElementById('platform-info');
+    if (platformEl) platformEl.textContent = `${os.platform || '--'} ${os.arch || ''} (${os.release || ''})`;
+    
+    const cpuInfoEl = document.getElementById('cpu-info');
+    if (cpuInfoEl && os.cpuCount) cpuInfoEl.textContent = `${os.cpuCount}x ${os.cpuModel || ''}`;
+    
+    const loadEl = document.getElementById('load-avg-info');
+    if (loadEl && os.loadAvg) loadEl.textContent = `${os.loadAvg['1m']?.toFixed(2)} / ${os.loadAvg['5m']?.toFixed(2)} / ${os.loadAvg['15m']?.toFixed(2)}`;
+    
+    const nodeEl = document.getElementById('node-version');
+    if (nodeEl && os.nodeVersion) nodeEl.textContent = os.nodeVersion;
+    
+    const osUptimeEl = document.getElementById('os-uptime');
+    if (osUptimeEl && os.uptime) {
+      const days = Math.floor(os.uptime / 86400);
+      const hrs = Math.floor((os.uptime % 86400) / 3600);
+      osUptimeEl.textContent = days > 0 ? `${days}d ${hrs}h` : `${hrs}h`;
+    }
   }
   
   // Monitoring

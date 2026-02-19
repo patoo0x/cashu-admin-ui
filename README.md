@@ -6,8 +6,9 @@ A web-based administration dashboard for [Cashu Nutshell](https://github.com/cas
 
 ## Features
 
-- **Dashboard** — Mint status, version, active keysets, uptime, memory/CPU usage at a glance
+- **Dashboard** — Mint status, version, active keysets, uptime, OS memory/CPU/disk usage, load average, host info
 - **Real-time monitoring** — WebSocket-powered live metrics, request tracking, operation counters
+- **Prometheus metrics** — `/metrics` endpoint for Prometheus + Grafana integration
 - **Settings management** — Configure mint info, limits, fees, and contact details via tabbed UI
 - **Keyset management** — View active keysets, trigger key rotation with custom parameters
 - **Admin actions** — Free mint (issue ecash without payment), quote state overrides, cache clearing
@@ -129,6 +130,35 @@ Connect to `ws://localhost:3339`. Receives:
 - `{ type: "connected" }` — on connection
 - `{ type: "stats", data: {...} }` — every 5 seconds (memory, uptime, recent requests)
 - `{ type: "log", data: {...} }` — real-time log entries
+
+## Prometheus Metrics
+
+The admin UI exposes a `/metrics` endpoint in Prometheus exposition format, enabling integration with Prometheus + Grafana monitoring stacks.
+
+```bash
+curl http://localhost:3339/metrics
+```
+
+Exported metrics include:
+
+| Metric | Type | Description |
+|---|---|---|
+| `cashu_mint_up` | gauge | Mint reachability (1=up, 0=down) |
+| `cashu_mint_active_keysets` | gauge | Number of active keysets |
+| `cashu_mint_requests_total` | counter | Total observed mint operations (by type) |
+| `cashu_admin_os_disk_free_bytes` | gauge | Free disk space |
+| `cashu_admin_os_disk_total_bytes` | gauge | Total disk space |
+| `cashu_admin_os_load_avg` | gauge | OS load average (1m/5m/15m) |
+| `cashu_admin_process_*` | various | Node.js process metrics (CPU, memory, event loop) |
+
+The `/metrics` endpoint does not require authentication (standard for Prometheus scraping). Add it to your `prometheus.yml`:
+
+```yaml
+scrape_configs:
+  - job_name: 'cashu-admin'
+    static_configs:
+      - targets: ['localhost:3339']
+```
 
 ## Security
 

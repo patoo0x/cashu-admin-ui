@@ -185,26 +185,39 @@
               <div class="resource-bars">
                 <div class="resource-item">
                   <div class="resource-header">
-                    <span>Memory</span>
-                    <span id="mem-usage">--</span>
+                    <span>OS Memory</span>
+                    <span id="os-mem-usage">--</span>
                   </div>
                   <div class="progress-bar">
-                    <div class="progress-fill" id="mem-bar" style="width: 0%"></div>
+                    <div class="progress-fill" id="os-mem-bar" style="width: 0%"></div>
                   </div>
                 </div>
                 <div class="resource-item">
                   <div class="resource-header">
-                    <span>CPU (Sample)</span>
+                    <span>CPU</span>
                     <span id="cpu-usage">--</span>
                   </div>
                   <div class="progress-bar">
                     <div class="progress-fill" id="cpu-bar" style="width: 0%"></div>
                   </div>
                 </div>
+                <div class="resource-item">
+                  <div class="resource-header">
+                    <span>Disk Space</span>
+                    <span id="disk-usage">--</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="disk-bar" style="width: 0%"></div>
+                  </div>
+                </div>
               </div>
               <div class="system-info">
-                <p>Node.js: <span id="node-version">--</span></p>
+                <p>Host: <span id="hostname-info">--</span></p>
                 <p>Platform: <span id="platform-info">--</span></p>
+                <p>CPUs: <span id="cpu-info">--</span></p>
+                <p>Load Avg: <span id="load-avg-info">--</span></p>
+                <p>Node.js: <span id="node-version">--</span></p>
+                <p>Uptime (OS): <span id="os-uptime">--</span></p>
               </div>
             </div>
           </div>
