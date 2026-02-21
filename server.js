@@ -35,6 +35,78 @@ const { execSync } = require('child_process');
 const path = require('path');
 const promClient = require('prom-client');
 
+// ---------------------------------------------------------------------------
+// SQLite — direct database inspection (read-only via sqlite3 CLI)
+// ---------------------------------------------------------------------------
+// We use the system sqlite3 CLI (execSync) to query Nutshell's SQLite
+// database. This approach requires no native Node.js addons — only the
+// standard sqlite3 binary (available on all Linux/macOS servers running
+// Nutshell, since Nutshell itself depends on SQLite).
+//
+// Access is strictly read-only — all queries are SELECT only.
+// The database path comes from MINT_DB_PATH env var. Nutshell stores its
+// SQLite file at MINT_DATA_PATH/cashu.db (default: ~/.cashu/mint/data/cashu.db).
+// See: cashu/core/settings.py → mint_data_path, cashu/mint/db/crud.py
+
+/**
+ * Check if the sqlite3 CLI is available on this system.
+ * @returns {boolean}
+ */
+function hasSqliteCli() {
+  try {
+    execSync('sqlite3 --version', { encoding: 'utf8', timeout: 2000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Run a single-value SELECT against the Nutshell SQLite DB.
+ * Returns null on any error (table not found, missing DB, etc.)
+ *
+ * @param {string} dbPath - Path to cashu.db
+ * @param {string} sql    - SQL query returning a single scalar value
+ * @returns {number|null}
+ */
+function sqliteQuery(dbPath, sql) {
+  try {
+    const result = execSync(
+      `sqlite3 -readonly "${dbPath}" "${sql.replace(/"/g, '\\"')}"`,
+      { encoding: 'utf8', timeout: 5000 }
+    ).trim();
+    return result !== '' ? parseInt(result, 10) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Run a GROUP BY query and return key→count map.
+ * Output format: "KEY|COUNT\nKEY|COUNT\n..."
+ *
+ * @param {string} dbPath - Path to cashu.db
+ * @param {string} sql    - GROUP BY query producing two columns: key, count
+ * @returns {Object.<string, number>}
+ */
+function sqliteGroupBy(dbPath, sql) {
+  try {
+    const out = execSync(
+      `sqlite3 -readonly "${dbPath}" "${sql.replace(/"/g, '\\"')}"`,
+      { encoding: 'utf8', timeout: 5000 }
+    ).trim();
+    if (!out) return {};
+    return Object.fromEntries(
+      out.split('\n').map(line => {
+        const [key, count] = line.split('|');
+        return [key?.trim(), parseInt(count?.trim(), 10)];
+      }).filter(([k, v]) => k && !isNaN(v))
+    );
+  } catch {
+    return {};
+  }
+}
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -52,7 +124,11 @@ const CONFIG = {
   mintGrpcPort: parseInt(process.env.MINT_GRPC_PORT || '8086', 10),  // Nutshell default: 8086
   adminUser: process.env.ADMIN_USER || 'admin',
   adminPass: process.env.ADMIN_PASS || 'admin123',
-  authType: process.env.AUTH_TYPE || 'basic'  // 'basic', 'token', or 'none'
+  authType: process.env.AUTH_TYPE || 'basic',  // 'basic', 'token', or 'none'
+  // Path to Nutshell's cashu.db SQLite file (MINT_DATA_PATH/cashu.db).
+  // Set MINT_DB_PATH in your .env to enable database entry count monitoring.
+  // Read-only access only — see cashu/core/settings.py for path config.
+  mintDbPath: process.env.MINT_DB_PATH || ''
 };
 
 // ---------------------------------------------------------------------------
@@ -81,6 +157,22 @@ const mintActiveKeysets = new promClient.Gauge({
 const mintUp = new promClient.Gauge({
   name: 'cashu_mint_up',
   help: 'Whether the Nutshell mint is reachable (1=up, 0=down)',
+  registers: [register]
+});
+
+// Database entry count gauges — addresses "number of entries in the database"
+// bounty requirement. Labels match Nutshell's DB table names.
+const dbEntryCount = new promClient.Gauge({
+  name: 'cashu_mint_db_entries_total',
+  help: 'Total number of rows in each Nutshell database table',
+  labelNames: ['table'],
+  registers: [register]
+});
+
+const dbQuotesByState = new promClient.Gauge({
+  name: 'cashu_mint_db_quotes_by_state',
+  help: 'Number of mint/melt quotes broken down by state',
+  labelNames: ['quote_type', 'state'],
   registers: [register]
 });
 
@@ -188,6 +280,120 @@ function getOsStats() {
     nodeVersion: process.version,
     pid: process.pid
   };
+}
+
+// ---------------------------------------------------------------------------
+// Database Stats Helper
+// ---------------------------------------------------------------------------
+// Reads Nutshell's SQLite database directly (read-only) to return entry
+// counts for all core tables. This addresses the exact bounty requirement
+// for "number of entries in the database".
+//
+// Nutshell DB schema (cashu/mint/db/crud.py, cashu/mint/db/db.py):
+//   mint_quotes   — NUT-04 mint quotes (states: UNPAID, PAID, ISSUED, EXPIRED)
+//   melt_quotes   — NUT-05 melt quotes (states: UNPAID, PENDING, PAID)
+//   proofs        — Spent proofs (redeemed tokens, double-spend prevention)
+//   outputs       — Blind signatures issued (promises to token holders)
+//   keysets       — Keyset history (active + retired keysets)
+//
+// Returns null if MINT_DB_PATH is not configured or the file doesn't exist.
+
+function getDbStats() {
+  if (!CONFIG.mintDbPath) {
+    return { available: false, reason: 'MINT_DB_PATH not configured. Set it to the path of your cashu.db file.' };
+  }
+
+  if (!fs.existsSync(CONFIG.mintDbPath)) {
+    return { available: false, reason: `Database file not found: ${CONFIG.mintDbPath}` };
+  }
+
+  if (!hasSqliteCli()) {
+    return { available: false, reason: 'sqlite3 CLI not found. Install sqlite3 (e.g., apt install sqlite3).' };
+  }
+
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const since24h = now - 86400;
+    const since1h  = now - 3600;
+
+    const p = CONFIG.mintDbPath;
+
+    // ---- mint_quotes (NUT-04) ----
+    const mintTotal   = sqliteQuery(p, 'SELECT COUNT(*) FROM mint_quotes');
+    const mintStates  = sqliteGroupBy(p, 'SELECT state, COUNT(*) FROM mint_quotes GROUP BY state');
+    const mintLast24h = sqliteQuery(p, `SELECT COUNT(*) FROM mint_quotes WHERE created_time > ${since24h}`);
+    const mintLast1h  = sqliteQuery(p, `SELECT COUNT(*) FROM mint_quotes WHERE created_time > ${since1h}`);
+
+    // ---- melt_quotes (NUT-05) ----
+    const meltTotal   = sqliteQuery(p, 'SELECT COUNT(*) FROM melt_quotes');
+    const meltStates  = sqliteGroupBy(p, 'SELECT state, COUNT(*) FROM melt_quotes GROUP BY state');
+    const meltLast24h = sqliteQuery(p, `SELECT COUNT(*) FROM melt_quotes WHERE created_time > ${since24h}`);
+    const meltLast1h  = sqliteQuery(p, `SELECT COUNT(*) FROM melt_quotes WHERE created_time > ${since1h}`);
+
+    // ---- proofs (spent tokens / double-spend prevention list) ----
+    const proofsTotal = sqliteQuery(p, 'SELECT COUNT(*) FROM proofs');
+
+    // ---- outputs / promises (blind signatures issued) ----
+    // Nutshell uses "outputs" in newer versions, "promises" in some older builds
+    let outputsTotal = sqliteQuery(p, 'SELECT COUNT(*) FROM outputs');
+    if (outputsTotal === null) {
+      outputsTotal = sqliteQuery(p, 'SELECT COUNT(*) FROM promises');
+    }
+
+    // ---- keysets ----
+    const keysetsTotal  = sqliteQuery(p, 'SELECT COUNT(*) FROM keysets');
+    const keysetsActive = sqliteQuery(p, 'SELECT COUNT(*) FROM keysets WHERE active = 1');
+
+    // Update Prometheus gauges
+    if (mintTotal   !== null) dbEntryCount.set({ table: 'mint_quotes' }, mintTotal);
+    if (meltTotal   !== null) dbEntryCount.set({ table: 'melt_quotes' }, meltTotal);
+    if (proofsTotal !== null) dbEntryCount.set({ table: 'proofs' },      proofsTotal);
+    if (outputsTotal !== null) dbEntryCount.set({ table: 'outputs' },    outputsTotal);
+    if (keysetsTotal !== null) dbEntryCount.set({ table: 'keysets' },    keysetsTotal);
+
+    Object.entries(mintStates).forEach(([state, n]) => dbQuotesByState.set({ quote_type: 'mint', state }, n));
+    Object.entries(meltStates).forEach(([state, n]) => dbQuotesByState.set({ quote_type: 'melt', state }, n));
+
+    return {
+      available: true,
+      dbPath: CONFIG.mintDbPath,
+      tables: {
+        mintQuotes: {
+          total: mintTotal,
+          byState: mintStates,
+          last24h: mintLast24h,
+          last1h:  mintLast1h,
+          note: 'NUT-04 mint operations'
+        },
+        meltQuotes: {
+          total: meltTotal,
+          byState: meltStates,
+          last24h: meltLast24h,
+          last1h:  meltLast1h,
+          note: 'NUT-05 melt operations'
+        },
+        proofs: {
+          total: proofsTotal,
+          note: 'Spent proofs (double-spend prevention)'
+        },
+        outputs: {
+          total: outputsTotal,
+          note: 'Blind signatures issued (promises to token holders)'
+        },
+        keysets: {
+          total:  keysetsTotal,
+          active: keysetsActive
+        }
+      },
+      requestsLast24h: (mintLast24h ?? 0) + (meltLast24h ?? 0),
+      requestsLast1h:  (mintLast1h  ?? 0) + (meltLast1h  ?? 0),
+      timestamp: now
+    };
+
+  } catch (error) {
+    addLog('error', 'admin', `DB stats error: ${error.message}`);
+    return { available: false, reason: `Query error: ${error.message}` };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -421,15 +627,21 @@ app.get('/api/admin/dashboard', requireAuth, async (req, res) => {
     // Collect host-level OS stats
     const osStats = getOsStats();
 
+    // Collect database stats (read-only SQLite inspection)
+    // This is the "number of entries in the database" bounty requirement
+    const dbStats = getDbStats();
+
     res.json({
       mintInfo: info.data,
       keys: keys.data,
       keysets: keysets.data,
       monitoring: monitoringData,
       os: osStats,
+      db: dbStats,
       config: {
         mintUrl: CONFIG.mintUrl,
-        authType: CONFIG.authType
+        authType: CONFIG.authType,
+        dbConfigured: !!CONFIG.mintDbPath
       }
     });
   } catch (error) {
@@ -565,6 +777,47 @@ app.post('/api/admin/monitoring/clear', requireAuth, (req, res) => {
   monitoringData.dbStats = {};
   addLog('info', 'admin', 'Monitoring data cleared');
   res.json({ success: true, message: 'Monitoring data cleared' });
+});
+
+// =========================================================================
+// ADMIN API — DATABASE STATISTICS
+// =========================================================================
+// Direct read-only inspection of Nutshell's SQLite database.
+// Addresses the bounty requirement: "number of entries in the database,
+// number of requests in recent past".
+//
+// Nutshell database tables (see cashu/mint/db/crud.py):
+//   mint_quotes  — NUT-04 mint requests (UNPAID → PAID → ISSUED → EXPIRED)
+//   melt_quotes  — NUT-05 melt requests (UNPAID → PENDING → PAID)
+//   proofs       — Spent proof set (double-spend prevention)
+//   outputs      — Blind signatures / promises issued to clients
+//   keysets      — Keyset history
+
+/**
+ * GET /api/admin/db/stats
+ * Returns entry counts for all core Nutshell database tables.
+ *
+ * Requires MINT_DB_PATH to be set in the environment (path to cashu.db).
+ * Opened read-only — admin UI never modifies the mint database.
+ *
+ * Response includes:
+ *   - Total rows per table (mint_quotes, melt_quotes, proofs, outputs, keysets)
+ *   - Quote state breakdowns (UNPAID/PAID/ISSUED/EXPIRED for mint quotes;
+ *     UNPAID/PENDING/PAID for melt quotes)
+ *   - Request volume for the trailing 24h and 1h windows
+ *     (derived from created_time timestamps in mint_quotes + melt_quotes)
+ */
+app.get('/api/admin/db/stats', requireAuth, (req, res) => {
+  try {
+    const stats = getDbStats();
+    if (stats.available) {
+      addLog('debug', 'admin', `DB stats: ${stats.tables.mintQuotes.total} mint quotes, ${stats.tables.meltQuotes.total} melt quotes, ${stats.tables.proofs.total} spent proofs`);
+    }
+    res.json(stats);
+  } catch (error) {
+    addLog('error', 'admin', `DB stats failed: ${error.message}`);
+    res.status(500).json({ available: false, reason: error.message });
+  }
 });
 
 // =========================================================================

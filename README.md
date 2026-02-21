@@ -7,9 +7,10 @@ A web-based administration dashboard for [Cashu Nutshell](https://github.com/cas
 ## Features
 
 - **Dashboard** — Mint status, version, active keysets, uptime, OS memory/CPU/disk usage, load average, host info
+- **Database statistics** — Direct read-only SQLite inspection: entry counts for mint_quotes, melt_quotes, proofs, outputs; state breakdowns; trailing 24h/1h request volumes
 - **Real-time monitoring** — WebSocket-powered live metrics, request tracking, operation counters
-- **Prometheus metrics** — `/metrics` endpoint for Prometheus + Grafana integration
-- **Settings management** — Configure mint info, limits, fees, and contact details via tabbed UI
+- **Prometheus metrics** — `/metrics` endpoint for Prometheus + Grafana integration (with DB entry count gauges)
+- **Settings management** — Configure mint info, limits, fees, and contact details via tabbed UI (pre-populated from live mint)
 - **Keyset management** — View active keysets, trigger key rotation with custom parameters
 - **Admin actions** — Free mint (issue ecash without payment), quote state overrides, cache clearing
 - **Activity log** — Filterable transaction history (mint/melt/swap/checkstate)
@@ -60,6 +61,7 @@ This starts both the admin UI on port `3339` and a Nutshell mint (FakeWallet bac
 | `ADMIN_USER` | `admin` | Basic auth username |
 | `ADMIN_PASS` | `admin123` | Basic auth password |
 | `AUTH_TYPE` | `basic` | Auth mode: `basic`, `token`, or `none` |
+| `MINT_DB_PATH` | _(empty)_ | Path to Nutshell's `cashu.db` SQLite file. Enables database entry count monitoring. Common: `~/.cashu/mint/data/cashu.db` (default install) or `./data/cashu.db` (Docker). Read-only access — admin UI never writes to the DB. |
 
 ## Architecture
 
@@ -80,12 +82,13 @@ This starts both the admin UI on port `3339` and a Nutshell mint (FakeWallet bac
 
 | Page | Description |
 |---|---|
-| **Dashboard** | Mint status, version, keyset count, uptime, memory/CPU bars, mint info card |
+| **Dashboard** | Mint status, version, keyset count, uptime, DB entry counts, memory/CPU/disk bars, mint info card |
 | **Monitoring** | Live request counters (mint/melt/swap), recent requests table, simulate activity |
-| **Settings** | Tabbed forms: Mint Info, Limits, Fees, Contact/MOTD |
+| **Settings** | Tabbed forms: Mint Info, Limits, Fees, Contact/MOTD (pre-populated from live mint) |
 | **Keysets** | Active keysets table, key rotation form (unit, max order, input fee) |
 | **Admin Actions** | Key rotation trigger, free mint modal, quote state management, cache clearing |
 | **Activity** | Filterable activity log with timestamps, types, amounts, IPs |
+| **Database** | Direct SQLite read: entry counts per table, quote state breakdowns (UNPAID/PAID/ISSUED/EXPIRED), trailing 24h/1h request volume |
 | **Logs** | Streaming log viewer with level/source filters, auto-scroll, clear |
 
 ## API Endpoints
@@ -119,6 +122,7 @@ All endpoints require authentication (unless `AUTH_TYPE=none`).
 | POST | `/api/admin/mint/free` | Issue ecash without payment |
 | POST | `/api/admin/quote/mint` | Override mint quote state |
 | POST | `/api/admin/quote/melt` | Override melt quote state |
+| GET | `/api/admin/db/stats` | Database entry counts from Nutshell's SQLite (requires `MINT_DB_PATH`) |
 | GET | `/api/admin/activity` | Recent activity (filterable by type) |
 | POST | `/api/admin/activity/simulate` | Generate simulated activity for testing |
 | GET | `/api/admin/logs` | Fetch log entries (filterable by level, source, since) |
@@ -149,6 +153,8 @@ Exported metrics include:
 | `cashu_admin_os_disk_free_bytes` | gauge | Free disk space |
 | `cashu_admin_os_disk_total_bytes` | gauge | Total disk space |
 | `cashu_admin_os_load_avg` | gauge | OS load average (1m/5m/15m) |
+| `cashu_mint_db_entries_total` | gauge | DB table row counts (label: `table`) |
+| `cashu_mint_db_quotes_by_state` | gauge | Quote counts by type and state (labels: `quote_type`, `state`) |
 | `cashu_admin_process_*` | various | Node.js process metrics (CPU, memory, event loop) |
 
 The `/metrics` endpoint does not require authentication (standard for Prometheus scraping). Add it to your `prometheus.yml`:

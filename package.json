@@ -1,6 +1,6 @@
 {
   "name": "cashu-admin-ui",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Admin UI for Cashu Nutshell Mint",
   "main": "server.js",
   "scripts": {

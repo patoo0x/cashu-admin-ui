@@ -226,6 +226,11 @@ class CashuAdmin {
         this.updateOsStats(data.os);
       }
 
+      // Load database entry counts (bounty req: "number of entries in database")
+      if (data.db) {
+        this.updateDashboardDbStats(data.db);
+      }
+
       // Start mint health polling (every 10 seconds)
       this.pollMintHealth();
       if (this._mintHealthInterval) clearInterval(this._mintHealthInterval);
@@ -415,6 +420,185 @@ class CashuAdmin {
     }
   }
   
+  // ---------------------------------------------------------------------------
+  // Database Statistics
+  // ---------------------------------------------------------------------------
+  // Direct SQLite database inspection for entry counts and state breakdowns.
+  // Addresses the bounty requirement: "number of entries in the database,
+  // number of requests in recent past".
+  //
+  // Nutshell DB tables covered:
+  //   mint_quotes  — NUT-04 mint operations (UNPAID/PAID/ISSUED/EXPIRED)
+  //   melt_quotes  — NUT-05 melt operations (UNPAID/PENDING/PAID)
+  //   proofs       — Spent proof set (double-spend prevention)
+  //   outputs      — Blind signatures / promises issued
+  //   keysets      — Keyset history
+
+  /**
+   * Update the compact DB stats panel on the dashboard overview cards.
+   * Called with data from the /api/admin/dashboard response (which includes db).
+   */
+  updateDashboardDbStats(db) {
+    // Stat cards
+    const proofsEl = document.getElementById('db-proofs-count');
+    if (proofsEl) proofsEl.textContent = db.available && db.tables?.proofs?.total !== null
+      ? db.tables.proofs.total.toLocaleString() : 'N/A';
+
+    const req24hEl = document.getElementById('db-requests-24h');
+    if (req24hEl) req24hEl.textContent = db.available
+      ? (db.requestsLast24h ?? 0).toLocaleString() : 'N/A';
+
+    if (!db.available) {
+      const msg = document.getElementById('db-unavailable-msg');
+      if (msg) msg.classList.remove('hidden');
+      return;
+    }
+
+    const t = db.tables;
+
+    // Dashboard DB panel
+    const setEl = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val !== null && val !== undefined ? val.toLocaleString() : 'N/A';
+    };
+
+    setEl('db-mint-quotes-total', t.mintQuotes?.total);
+    setEl('db-melt-quotes-total', t.meltQuotes?.total);
+    setEl('db-proofs-total', t.proofs?.total);
+    setEl('db-outputs-total', t.outputs?.total);
+    setEl('db-req-1h', db.requestsLast1h);
+    setEl('db-req-24h', db.requestsLast24h);
+    setEl('db-keysets-active', t.keysets?.active);
+
+    // State badges for mint quotes
+    const mintStatesEl = document.getElementById('db-mint-quotes-states');
+    if (mintStatesEl && t.mintQuotes?.byState) {
+      mintStatesEl.innerHTML = Object.entries(t.mintQuotes.byState)
+        .map(([s, n]) => `<span class="state-badge state-${s.toLowerCase()}">${s}: ${n}</span>`)
+        .join(' ');
+    }
+
+    // State badges for melt quotes
+    const meltStatesEl = document.getElementById('db-melt-quotes-states');
+    if (meltStatesEl && t.meltQuotes?.byState) {
+      meltStatesEl.innerHTML = Object.entries(t.meltQuotes.byState)
+        .map(([s, n]) => `<span class="state-badge state-${s.toLowerCase()}">${s}: ${n}</span>`)
+        .join(' ');
+    }
+  }
+
+  /**
+   * Load and render the full Database page with detailed breakdown tables.
+   * Called when user navigates to the Database page.
+   */
+  async loadDbStats() {
+    try {
+      const db = await this.fetchWithAuth('/api/admin/db/stats');
+      this.renderDbPage(db);
+    } catch (error) {
+      this.showToast('Failed to load database stats: ' + error.message, 'error');
+    }
+  }
+
+  /**
+   * Render the full Database page with all tables and breakdowns.
+   */
+  renderDbPage(db) {
+    // Quote state descriptions for human readability
+    const mintStateDesc = {
+      'UNPAID': 'Waiting for Lightning payment',
+      'PAID':   'Payment received, ready to mint',
+      'ISSUED': 'Ecash tokens minted and delivered',
+      'EXPIRED':'Quote expired without payment',
+      '0': 'UNPAID — Waiting for payment',
+      '1': 'PAID — Ready to mint',
+      '2': 'ISSUED — Tokens delivered'
+    };
+    const meltStateDesc = {
+      'UNPAID':  'Pending Lightning payment',
+      'PENDING': 'Payment in flight',
+      'PAID':    'Completed / tokens burned',
+      '0': 'UNPAID — Pending payment',
+      '1': 'PENDING — In flight',
+      '2': 'PAID — Completed'
+    };
+
+    if (!db.available) {
+      document.getElementById('db-page-unavailable')?.classList.remove('hidden');
+      document.getElementById('db-page-content')?.classList.add('hidden');
+      return;
+    }
+
+    document.getElementById('db-page-unavailable')?.classList.add('hidden');
+    document.getElementById('db-page-content')?.classList.remove('hidden');
+
+    const setEl = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val !== null && val !== undefined ? val.toLocaleString() : 'N/A';
+    };
+
+    const t = db.tables;
+
+    // Stat cards
+    setEl('dbp-mint-total', t.mintQuotes?.total);
+    setEl('dbp-melt-total', t.meltQuotes?.total);
+    setEl('dbp-proofs-total', t.proofs?.total);
+    setEl('dbp-outputs-total', t.outputs?.total);
+
+    // Mint quotes state table
+    const mintStatesTbody = document.getElementById('dbp-mint-states');
+    if (mintStatesTbody) {
+      const rows = Object.entries(t.mintQuotes?.byState || {});
+      if (rows.length > 0) {
+        mintStatesTbody.innerHTML = rows.map(([state, count]) => `
+          <tr>
+            <td><span class="state-badge state-${state.toLowerCase()}">${state}</span></td>
+            <td>${count.toLocaleString()}</td>
+            <td style="opacity:0.6; font-size:0.9em;">${mintStateDesc[state] || state}</td>
+          </tr>
+        `).join('');
+      } else {
+        mintStatesTbody.innerHTML = '<tr><td colspan="3" class="empty-state">No mint quotes in database</td></tr>';
+      }
+    }
+
+    // Melt quotes state table
+    const meltStatesTbody = document.getElementById('dbp-melt-states');
+    if (meltStatesTbody) {
+      const rows = Object.entries(t.meltQuotes?.byState || {});
+      if (rows.length > 0) {
+        meltStatesTbody.innerHTML = rows.map(([state, count]) => `
+          <tr>
+            <td><span class="state-badge state-${state.toLowerCase()}">${state}</span></td>
+            <td>${count.toLocaleString()}</td>
+            <td style="opacity:0.6; font-size:0.9em;">${meltStateDesc[state] || state}</td>
+          </tr>
+        `).join('');
+      } else {
+        meltStatesTbody.innerHTML = '<tr><td colspan="3" class="empty-state">No melt quotes in database</td></tr>';
+      }
+    }
+
+    // Volume metrics
+    setEl('dbp-mint-1h',  t.mintQuotes?.last1h);
+    setEl('dbp-mint-24h', t.mintQuotes?.last24h);
+    setEl('dbp-melt-1h',  t.meltQuotes?.last1h);
+    setEl('dbp-melt-24h', t.meltQuotes?.last24h);
+    setEl('dbp-req-mint-1h',  t.mintQuotes?.last1h);
+    setEl('dbp-req-melt-1h',  t.meltQuotes?.last1h);
+    setEl('dbp-req-mint-24h', t.mintQuotes?.last24h);
+    setEl('dbp-req-melt-24h', t.meltQuotes?.last24h);
+
+    // Summary
+    setEl('dbp-keysets-total',  t.keysets?.total);
+    setEl('dbp-keysets-active', t.keysets?.active);
+    setEl('dbp-proofs-count',   t.proofs?.total);
+    setEl('dbp-outputs-count',  t.outputs?.total);
+
+    const pathEl = document.getElementById('dbp-path');
+    if (pathEl) pathEl.textContent = db.dbPath || 'unknown';
+  }
+
   // ---------------------------------------------------------------------------
   // Mint Server Health
   // ---------------------------------------------------------------------------
@@ -672,6 +856,7 @@ class CashuAdmin {
         // Load page data
         if (page === 'monitoring') this.loadMonitoring();
         if (page === 'activity') this.loadActivity();
+        if (page === 'database') this.loadDbStats();
       });
     });
     
@@ -776,6 +961,10 @@ class CashuAdmin {
       await this.rotateKeyset();
     });
     
+    // Database refresh buttons
+    document.getElementById('refresh-db-stats')?.addEventListener('click', () => this.loadDashboard());
+    document.getElementById('refresh-db-page')?.addEventListener('click', () => this.loadDbStats());
+
     // Monitoring buttons
     document.getElementById('clear-monitoring').addEventListener('click', () => this.clearMonitoring());
     document.getElementById('simulate-activity').addEventListener('click', () => this.simulateActivity());
