@@ -1437,3 +1437,104 @@ select option {
 .state-badge.state-0 { background: rgba(248, 81, 73, 0.15);  color: #f85149; border-color: rgba(248, 81, 73, 0.3); }
 .state-badge.state-1 { background: rgba(63, 185, 80, 0.15);  color: #3fb950; border-color: rgba(63, 185, 80, 0.3); }
 .state-badge.state-2 { background: rgba(88, 166, 255, 0.15); color: #58a6ff; border-color: rgba(88, 166, 255, 0.3); }
+
+/* =========================================================================
+   Database Page — additional styles
+   ========================================================================= */
+
+/* 2×2 stat grid for database page header */
+.stats-grid-2x2 {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+/* Table footer stat pills */
+.table-footer-stats {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+.table-footer-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.table-footer-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.table-footer-val {
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-primary);
+}
+
+/* Request Volume comparison table */
+.req-volume-table td,
+.req-volume-table th {
+  text-align: center;
+}
+
+.req-volume-table th:first-child,
+.req-volume-table td:first-child {
+  text-align: left;
+}
+
+.period-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: rgba(255,255,255,0.07);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.req-count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.req-total {
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.req-volume-note {
+  margin-top: 14px;
+  font-size: 0.78em;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* Keysets card accent */
+.card-keysets-db {
+  border-left: 3px solid #2dd4bf;
+}
+
+/* DB data path label */
+.db-path-label {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.72em;
+  color: var(--text-muted);
+  opacity: 0.5;
+  word-break: break-all;
+}

@@ -601,21 +601,38 @@ class CashuAdmin {
       }
     }
 
-    // Volume metrics
+    // Volume metrics (table footer pills)
     setEl('dbp-mint-1h',  t.mintQuotes?.last1h);
     setEl('dbp-mint-24h', t.mintQuotes?.last24h);
     setEl('dbp-melt-1h',  t.meltQuotes?.last1h);
     setEl('dbp-melt-24h', t.meltQuotes?.last24h);
-    setEl('dbp-req-mint-1h',  t.mintQuotes?.last1h);
-    setEl('dbp-req-melt-1h',  t.meltQuotes?.last1h);
-    setEl('dbp-req-mint-24h', t.mintQuotes?.last24h);
-    setEl('dbp-req-melt-24h', t.meltQuotes?.last24h);
+
+    // Request volume comparison table — with computed totals
+    const mint1h  = t.mintQuotes?.last1h  ?? 0;
+    const melt1h  = t.meltQuotes?.last1h  ?? 0;
+    const mint24h = t.mintQuotes?.last24h ?? 0;
+    const melt24h = t.meltQuotes?.last24h ?? 0;
+    setEl('dbp-req-mint-1h',  mint1h);
+    setEl('dbp-req-melt-1h',  melt1h);
+    setEl('dbp-req-total-1h', mint1h + melt1h);
+    setEl('dbp-req-mint-24h', mint24h);
+    setEl('dbp-req-melt-24h', melt24h);
+    setEl('dbp-req-total-24h', mint24h + melt24h);
 
     // Summary
     setEl('dbp-keysets-total',  t.keysets?.total);
     setEl('dbp-keysets-active', t.keysets?.active);
     setEl('dbp-proofs-count',   t.proofs?.total);
     setEl('dbp-outputs-count',  t.outputs?.total);
+
+    // Active keysets status badge
+    const activeBadgeEl = document.getElementById('dbp-keysets-active-badge');
+    if (activeBadgeEl && t.keysets?.active !== undefined) {
+      const isActive = t.keysets.active > 0;
+      activeBadgeEl.innerHTML = isActive
+        ? `<span class="status-indicator status-online" style="margin-left:8px;font-size:0.72rem;">active</span>`
+        : `<span class="status-indicator status-offline" style="margin-left:8px;font-size:0.72rem;">none</span>`;
+    }
 
     const pathEl = document.getElementById('dbp-path');
     if (pathEl) pathEl.textContent = db.dbPath || 'unknown';

@@ -903,7 +903,7 @@
         </div>
 
         <div id="db-page-content">
-          <div class="stats-grid" style="margin-bottom: 24px;">
+          <div class="stats-grid stats-grid-2x2" style="margin-bottom: 24px;">
             <div class="stat-card">
               <div class="stat-icon stat-icon-purple">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 9A9 9 0 1 0 21 12"/></svg>
@@ -958,9 +958,15 @@
                     <tr><td colspan="3" class="empty-state">Loading...</td></tr>
                   </tbody>
                 </table>
-                <div style="margin-top: 16px; font-size: 0.85em; display: flex; gap: 24px; flex-wrap: wrap;">
-                  <span style="opacity:0.6;">Last 1h: <strong id="dbp-mint-1h">--</strong></span>
-                  <span style="opacity:0.6;">Last 24h: <strong id="dbp-mint-24h">--</strong></span>
+                <div class="table-footer-stats">
+                  <div class="table-footer-stat">
+                    <span class="table-footer-label">1h</span>
+                    <span class="table-footer-val" id="dbp-mint-1h">--</span>
+                  </div>
+                  <div class="table-footer-stat">
+                    <span class="table-footer-label">24h</span>
+                    <span class="table-footer-val" id="dbp-mint-24h">--</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -976,9 +982,15 @@
                     <tr><td colspan="3" class="empty-state">Loading...</td></tr>
                   </tbody>
                 </table>
-                <div style="margin-top: 16px; font-size: 0.85em; display: flex; gap: 24px; flex-wrap: wrap;">
-                  <span style="opacity:0.6;">Last 1h: <strong id="dbp-melt-1h">--</strong></span>
-                  <span style="opacity:0.6;">Last 24h: <strong id="dbp-melt-24h">--</strong></span>
+                <div class="table-footer-stats">
+                  <div class="table-footer-stat">
+                    <span class="table-footer-label">1h</span>
+                    <span class="table-footer-val" id="dbp-melt-1h">--</span>
+                  </div>
+                  <div class="table-footer-stat">
+                    <span class="table-footer-label">24h</span>
+                    <span class="table-footer-val" id="dbp-melt-24h">--</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -988,29 +1000,35 @@
                 <h2>Request Volume</h2>
               </div>
               <div class="card-body">
-                <div class="metrics-grid">
-                  <div class="metric-box">
-                    <span class="metric-label">Last 1h (mint)</span>
-                    <span class="metric-value" id="dbp-req-mint-1h">--</span>
-                  </div>
-                  <div class="metric-box">
-                    <span class="metric-label">Last 1h (melt)</span>
-                    <span class="metric-value" id="dbp-req-melt-1h">--</span>
-                  </div>
-                  <div class="metric-box">
-                    <span class="metric-label">Last 24h (mint)</span>
-                    <span class="metric-value" id="dbp-req-mint-24h">--</span>
-                  </div>
-                  <div class="metric-box">
-                    <span class="metric-label">Last 24h (melt)</span>
-                    <span class="metric-value" id="dbp-req-melt-24h">--</span>
-                  </div>
-                </div>
-                <p style="margin-top: 16px; font-size: 0.8em; opacity: 0.5;">Derived from <code>created_time</code> timestamps in <code>mint_quotes</code> and <code>melt_quotes</code> tables.</p>
+                <table class="data-table req-volume-table">
+                  <thead>
+                    <tr>
+                      <th>Period</th>
+                      <th>Mint</th>
+                      <th>Melt</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="period-badge">1h</span></td>
+                      <td id="dbp-req-mint-1h" class="req-count">--</td>
+                      <td id="dbp-req-melt-1h" class="req-count">--</td>
+                      <td id="dbp-req-total-1h" class="req-count req-total">--</td>
+                    </tr>
+                    <tr>
+                      <td><span class="period-badge">24h</span></td>
+                      <td id="dbp-req-mint-24h" class="req-count">--</td>
+                      <td id="dbp-req-melt-24h" class="req-count">--</td>
+                      <td id="dbp-req-total-24h" class="req-count req-total">--</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p class="req-volume-note">Derived from <code>created_time</code> timestamps in <code>mint_quotes</code> and <code>melt_quotes</code> tables.</p>
               </div>
             </div>
 
-            <div class="card">
+            <div class="card card-keysets-db">
               <div class="card-header">
                 <h2>Keysets (DB)</h2>
               </div>
@@ -1022,7 +1040,10 @@
                   </div>
                   <div class="info-item">
                     <span class="info-label">Active Keysets</span>
-                    <span class="info-value" id="dbp-keysets-active">--</span>
+                    <span class="info-value">
+                      <span id="dbp-keysets-active">--</span>
+                      <span id="dbp-keysets-active-badge"></span>
+                    </span>
                   </div>
                   <div class="info-item">
                     <span class="info-label">Spent Proofs</span>
@@ -1033,7 +1054,7 @@
                     <span class="info-value" id="dbp-outputs-count">--</span>
                   </div>
                 </div>
-                <p style="margin-top: 12px; font-size: 0.75em; opacity: 0.4;">Data path: <span id="dbp-path">--</span></p>
+                <p class="db-path-label">Data path: <span id="dbp-path">--</span></p>
               </div>
             </div>
           </div>
