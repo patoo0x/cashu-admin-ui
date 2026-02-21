@@ -2,7 +2,9 @@
 
 A web-based administration dashboard for [Cashu Nutshell](https://github.com/cashubtc/nutshell) mints. Monitor activity, manage settings, rotate keysets, and perform admin operations from a modern dark-themed interface.
 
-![Dashboard](screenshots/dashboard.png)
+![Dashboard](screenshots/dashboard-v2.jpg)
+
+![Database](screenshots/database-v2.jpg)
 
 ## Features
 
