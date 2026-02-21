@@ -237,42 +237,55 @@
             <div class="card-body">
               <div id="db-stats-content">
                 <div class="db-stats-grid">
-                  <div class="db-stat-item">
-                    <div class="db-stat-label">Mint Quotes</div>
-                    <div class="db-stat-value" id="db-mint-quotes-total">--</div>
+                  <div class="db-stat-item db-stat-mint">
+                    <div class="db-stat-header">
+                      <span class="db-stat-label">Mint Quotes</span>
+                      <span class="db-stat-value" id="db-mint-quotes-total">--</span>
+                    </div>
+                    <div class="db-stat-bar" id="db-mint-quotes-bar"></div>
                     <div class="db-stat-states" id="db-mint-quotes-states"></div>
                   </div>
-                  <div class="db-stat-item">
-                    <div class="db-stat-label">Melt Quotes</div>
-                    <div class="db-stat-value" id="db-melt-quotes-total">--</div>
+                  <div class="db-stat-item db-stat-melt">
+                    <div class="db-stat-header">
+                      <span class="db-stat-label">Melt Quotes</span>
+                      <span class="db-stat-value" id="db-melt-quotes-total">--</span>
+                    </div>
+                    <div class="db-stat-bar" id="db-melt-quotes-bar"></div>
                     <div class="db-stat-states" id="db-melt-quotes-states"></div>
                   </div>
-                  <div class="db-stat-item">
-                    <div class="db-stat-label">Spent Proofs</div>
-                    <div class="db-stat-value" id="db-proofs-total">--</div>
-                    <div class="db-stat-note" style="font-size:0.75em;opacity:0.5;">double-spend list</div>
+                  <div class="db-stat-item db-stat-proofs">
+                    <div class="db-stat-header">
+                      <span class="db-stat-label">Spent Proofs</span>
+                      <span class="db-stat-value" id="db-proofs-total">--</span>
+                    </div>
+                    <div class="db-stat-sublabel">double-spend prevention list</div>
                   </div>
-                  <div class="db-stat-item">
-                    <div class="db-stat-label">Signatures Issued</div>
-                    <div class="db-stat-value" id="db-outputs-total">--</div>
-                    <div class="db-stat-note" style="font-size:0.75em;opacity:0.5;">blind promises</div>
-                  </div>
-                </div>
-                <div id="db-req-row" style="margin-top: 16px; font-size: 0.8em; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
-                  <div style="display:flex; justify-content:space-between; margin-bottom: 6px;">
-                    <span style="opacity:0.6;">Requests last 1h</span>
-                    <span id="db-req-1h" style="font-weight:600;">--</span>
-                  </div>
-                  <div style="display:flex; justify-content:space-between; margin-bottom: 6px;">
-                    <span style="opacity:0.6;">Requests last 24h</span>
-                    <span id="db-req-24h" style="font-weight:600;">--</span>
-                  </div>
-                  <div style="display:flex; justify-content:space-between;">
-                    <span style="opacity:0.6;">Active Keysets (DB)</span>
-                    <span id="db-keysets-active" style="font-weight:600;">--</span>
+                  <div class="db-stat-item db-stat-sigs">
+                    <div class="db-stat-header">
+                      <span class="db-stat-label">Signatures Issued</span>
+                      <span class="db-stat-value" id="db-outputs-total">--</span>
+                    </div>
+                    <div class="db-stat-sublabel">blind promises (NUT-00)</div>
                   </div>
                 </div>
-                <div id="db-unavailable-msg" class="hidden" style="text-align:center; opacity:0.5; font-size:0.85em; padding: 12px 0;">
+                <div id="db-req-row" class="db-activity-row">
+                  <div class="db-activity-item">
+                    <span class="db-activity-icon">⚡</span>
+                    <span class="db-activity-val" id="db-req-1h">--</span>
+                    <span class="db-activity-label">reqs / 1h</span>
+                  </div>
+                  <div class="db-activity-item">
+                    <span class="db-activity-icon">📊</span>
+                    <span class="db-activity-val" id="db-req-24h">--</span>
+                    <span class="db-activity-label">reqs / 24h</span>
+                  </div>
+                  <div class="db-activity-item">
+                    <span class="db-activity-icon">🗝️</span>
+                    <span class="db-activity-val" id="db-keysets-active">--</span>
+                    <span class="db-activity-label">active keysets</span>
+                  </div>
+                </div>
+                <div id="db-unavailable-msg" class="hidden" style="text-align:center; opacity:0.5; font-size:0.85em; padding: 24px 0;">
                   Set <code>MINT_DB_PATH</code> in .env to enable DB inspection
                 </div>
               </div>

@@ -475,21 +475,38 @@ class CashuAdmin {
     setEl('db-req-24h', db.requestsLast24h);
     setEl('db-keysets-active', t.keysets?.active);
 
-    // State badges for mint quotes
-    const mintStatesEl = document.getElementById('db-mint-quotes-states');
-    if (mintStatesEl && t.mintQuotes?.byState) {
-      mintStatesEl.innerHTML = Object.entries(t.mintQuotes.byState)
-        .map(([s, n]) => `<span class="state-badge state-${s.toLowerCase()}">${s}: ${n}</span>`)
-        .join(' ');
-    }
+    // Helper: render segmented distribution bar + state badges
+    const renderStateBreakdown = (barId, badgesId, byState, total) => {
+      const barEl = document.getElementById(barId);
+      const badgesEl = document.getElementById(badgesId);
+      if (!byState || !total) return;
 
-    // State badges for melt quotes
-    const meltStatesEl = document.getElementById('db-melt-quotes-states');
-    if (meltStatesEl && t.meltQuotes?.byState) {
-      meltStatesEl.innerHTML = Object.entries(t.meltQuotes.byState)
-        .map(([s, n]) => `<span class="state-badge state-${s.toLowerCase()}">${s}: ${n}</span>`)
-        .join(' ');
-    }
+      // Segmented bar — proportional widths
+      if (barEl) {
+        barEl.innerHTML = Object.entries(byState)
+          .filter(([, n]) => n > 0)
+          .map(([s, n]) => {
+            const pct = ((n / total) * 100).toFixed(1);
+            return `<div class="db-bar-seg seg-${s.toLowerCase()}" style="width:${pct}%" title="${s}: ${n}"></div>`;
+          }).join('');
+      }
+
+      // State badges below bar
+      if (badgesEl) {
+        badgesEl.innerHTML = Object.entries(byState)
+          .map(([s, n]) => `<span class="state-badge state-${s.toLowerCase()}">${s}: ${n}</span>`)
+          .join('');
+      }
+    };
+
+    renderStateBreakdown(
+      'db-mint-quotes-bar', 'db-mint-quotes-states',
+      t.mintQuotes?.byState, t.mintQuotes?.total
+    );
+    renderStateBreakdown(
+      'db-melt-quotes-bar', 'db-melt-quotes-states',
+      t.meltQuotes?.byState, t.meltQuotes?.total
+    );
   }
 
   /**

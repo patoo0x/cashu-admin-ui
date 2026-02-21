@@ -1298,47 +1298,128 @@ select option {
 .db-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .db-stat-item {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-color);
+  border-left-width: 3px;
   border-radius: 8px;
-  padding: 12px;
-  text-align: center;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+/* Per-type left border accent */
+.db-stat-mint   { border-left-color: var(--accent-primary); }
+.db-stat-melt   { border-left-color: #58a6ff; }
+.db-stat-proofs { border-left-color: #f85149; }
+.db-stat-sigs   { border-left-color: #2dd4bf; }
+
+.db-stat-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .db-stat-label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-secondary);
-  margin-bottom: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .db-stat-value {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 700;
   font-family: 'IBM Plex Mono', monospace;
-  color: var(--accent-primary);
-  margin-bottom: 4px;
+  color: var(--text-primary);
+  line-height: 1;
 }
+
+.db-stat-sublabel {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Segmented distribution bar */
+.db-stat-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.07);
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.db-bar-seg {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+.db-bar-seg.seg-issued  { background: #58a6ff; }
+.db-bar-seg.seg-paid    { background: #3fb950; }
+.db-bar-seg.seg-unpaid  { background: #f85149; }
+.db-bar-seg.seg-expired { background: #d29922; }
+.db-bar-seg.seg-pending { background: #d29922; }
 
 .db-stat-states {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  justify-content: center;
-  margin-top: 6px;
+}
+
+/* Activity row — 3 mini cards */
+.db-activity-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding-top: 12px;
+}
+
+.db-activity-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.db-activity-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.db-activity-val {
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.db-activity-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
 }
 
 /* State badges for quote state breakdowns */
 .state-badge {
   display: inline-block;
-  padding: 2px 7px;
+  padding: 2px 5px;
   border-radius: 4px;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-family: 'IBM Plex Mono', monospace;
   font-weight: 600;
   letter-spacing: 0.02em;
