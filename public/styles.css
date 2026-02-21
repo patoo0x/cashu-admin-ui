@@ -315,7 +315,7 @@ h1, h2, h3, h4, h5, h6,
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   margin-bottom: 2rem;
 }
@@ -374,7 +374,12 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /* Dashboard Grid */
-.dashboard-grid,
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
 .monitoring-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));

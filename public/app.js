@@ -449,6 +449,11 @@ class CashuAdmin {
       ? (db.requestsLast24h ?? 0).toLocaleString() : 'N/A';
 
     if (!db.available) {
+      // Hide the stats grid and request rows — show clean empty state instead
+      const grid = document.querySelector('.db-stats-grid');
+      if (grid) grid.style.display = 'none';
+      const reqRow = document.getElementById('db-req-row');
+      if (reqRow) reqRow.style.display = 'none';
       const msg = document.getElementById('db-unavailable-msg');
       if (msg) msg.classList.remove('hidden');
       return;
