@@ -231,6 +231,16 @@ class CashuAdmin {
         this.updateDashboardDbStats(data.db);
       }
 
+      // Mint balances — outstanding ecash per unit at top of dashboard
+      if (data.balances) {
+        this.updateMintBalances(data.balances);
+      } else {
+        // Fallback: fetch separately if not included in dashboard response
+        this.fetchWithAuth('/api/admin/balances')
+          .then(b => this.updateMintBalances(b))
+          .catch(() => this.updateMintBalances(null));
+      }
+
       // Start mint health polling (every 10 seconds)
       this.pollMintHealth();
       if (this._mintHealthInterval) clearInterval(this._mintHealthInterval);
@@ -520,6 +530,88 @@ class CashuAdmin {
     } catch (error) {
       this.showToast('Failed to load database stats: ' + error.message, 'error');
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mint Balances
+  // ---------------------------------------------------------------------------
+  // Renders outstanding ecash per unit at the top of the dashboard.
+  // outstanding = issued (outputs) - redeemed (proofs), grouped by unit.
+  // Unit amounts: sat/msat = integers; usd/eur = cents (divide by 100).
+
+  /**
+   * Render the mint balance cards at the top of the dashboard.
+   * Gracefully shows a "Set MINT_DB_PATH" prompt when DB is unavailable.
+   *
+   * @param {{ available: boolean, balances?: Object }} data - from /api/admin/balances
+   */
+  updateMintBalances(data) {
+    const container = document.getElementById('mint-balance-cards');
+    if (!container) return;
+
+    if (!data || !data.available || !data.balances || Object.keys(data.balances).length === 0) {
+      container.innerHTML = `
+        <div class="mint-balance-card mint-balance-unavailable">
+          <div class="mint-balance-icon">🔒</div>
+          <div class="mint-balance-info">
+            <div class="mint-balance-unit">Balance Unavailable</div>
+            <div class="mint-balance-amount">Set MINT_DB_PATH</div>
+            <div class="mint-balance-sub">Configure MINT_DB_PATH in .env to show outstanding ecash per unit</div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Unit display config — icon, label, amount formatter, subtitle formatter
+    const unitMeta = {
+      sat: {
+        label: 'Bitcoin (SAT)', icon: '₿', color: 'unit-btc',
+        format: (n) => n.toLocaleString() + ' sats',
+        sub:    (n) => '≈ ' + (n / 1e8).toFixed(8) + ' BTC'
+      },
+      msat: {
+        label: 'Bitcoin (MSAT)', icon: '₿', color: 'unit-btc',
+        format: (n) => n.toLocaleString() + ' msats',
+        sub:    (n) => '≈ ' + (n / 1e11).toFixed(8) + ' BTC'
+      },
+      usd: {
+        label: 'US Dollar (USD)', icon: '$', color: 'unit-usd',
+        format: (n) => '$' + (n / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        sub:    (n) => n.toLocaleString() + ' cents outstanding'
+      },
+      eur: {
+        label: 'Euro (EUR)', icon: '€', color: 'unit-eur',
+        format: (n) => '€' + (n / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        sub:    (n) => n.toLocaleString() + ' cents outstanding'
+      }
+    };
+
+    const cards = Object.values(data.balances).map(b => {
+      const meta = unitMeta[b.unit] || {
+        label: b.unit.toUpperCase(), icon: '●', color: '',
+        format: (n) => n.toLocaleString() + ' ' + b.unit,
+        sub:    ()  => ''
+      };
+      return `
+        <div class="mint-balance-card ${meta.color}">
+          <div class="mint-balance-icon">${meta.icon}</div>
+          <div class="mint-balance-info">
+            <div class="mint-balance-unit">${meta.label}</div>
+            <div class="mint-balance-amount">${meta.format(b.outstanding)}</div>
+            <div class="mint-balance-sub">${meta.sub(b.outstanding)}</div>
+            <div class="mint-balance-detail">issued: ${b.issued.toLocaleString()} · redeemed: ${b.redeemed.toLocaleString()}</div>
+          </div>
+        </div>`;
+    });
+
+    container.innerHTML = cards.join('') || `
+      <div class="mint-balance-card mint-balance-unavailable">
+        <div class="mint-balance-icon">○</div>
+        <div class="mint-balance-info">
+          <div class="mint-balance-unit">No keysets found</div>
+          <div class="mint-balance-amount">--</div>
+        </div>
+      </div>`;
   }
 
   /**
