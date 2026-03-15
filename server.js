@@ -107,6 +107,34 @@ function sqliteGroupBy(dbPath, sql) {
   }
 }
 
+/**
+ * Run a GROUP BY query and return key→SUM map.
+ * Output format: "KEY|SUM\nKEY|SUM\n..."
+ *
+ * Used for summing amounts by unit (e.g. total issued/redeemed per currency).
+ *
+ * @param {string} dbPath - Path to cashu.db
+ * @param {string} sql    - GROUP BY query producing two columns: key, sum
+ * @returns {Object.<string, number>}
+ */
+function sqliteGroupBySum(dbPath, sql) {
+  try {
+    const out = execSync(
+      `sqlite3 -readonly "${dbPath}" "${sql.replace(/"/g, '\\"')}"`,
+      { encoding: 'utf8', timeout: 5000 }
+    ).trim();
+    if (!out) return {};
+    return Object.fromEntries(
+      out.split('\n').map(line => {
+        const [key, sum] = line.split('|');
+        return [key?.trim(), parseInt(sum?.trim(), 10)];
+      }).filter(([k, v]) => k && !isNaN(v))
+    );
+  } catch {
+    return {};
+  }
+}
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -397,6 +425,65 @@ function getDbStats() {
 }
 
 // ---------------------------------------------------------------------------
+// Mint Balances Helper
+// ---------------------------------------------------------------------------
+// Computes outstanding ecash per unit from the Nutshell SQLite database.
+//
+// Cashu ecash accounting:
+//   outputs table  = all blind signatures ever issued  (total ecash created)
+//   proofs table   = all tokens spent/redeemed         (ecash returned to mint)
+//   outstanding    = SUM(outputs.amount) - SUM(proofs.amount), grouped by unit
+//
+// Unit conventions:
+//   sat   — satoshis (integers)
+//   msat  — millisatoshis (integers)
+//   usd   — US cents (divide by 100 to get dollars)
+//   eur   — Euro cents (divide by 100 to get euros)
+
+/**
+ * Compute outstanding ecash balance per unit.
+ * Returns { available: false } when DB is not configured or accessible.
+ *
+ * @returns {{ available: boolean, balances?: Object.<string, {outstanding: number, issued: number, redeemed: number, unit: string}> }}
+ */
+function getMintBalances() {
+  if (!CONFIG.mintDbPath || !fs.existsSync(CONFIG.mintDbPath) || !hasSqliteCli()) {
+    return { available: false };
+  }
+  try {
+    const p = CONFIG.mintDbPath;
+
+    // Total issued per unit — all blind signatures ever created
+    const issued = sqliteGroupBySum(p,
+      'SELECT k.unit, SUM(o.amount) FROM outputs o JOIN keysets k ON o.id = k.id GROUP BY k.unit'
+    );
+
+    // Total redeemed per unit — tokens that have been spent back to the mint
+    const spent = sqliteGroupBySum(p,
+      'SELECT k.unit, SUM(p.amount) FROM proofs p JOIN keysets k ON p.id = k.id GROUP BY k.unit'
+    );
+
+    const units = new Set([...Object.keys(issued), ...Object.keys(spent)]);
+    const balances = {};
+    for (const unit of units) {
+      const totalIssued = issued[unit] || 0;
+      const totalSpent = spent[unit] || 0;
+      balances[unit] = {
+        outstanding: totalIssued - totalSpent,
+        issued: totalIssued,
+        redeemed: totalSpent,
+        unit
+      };
+    }
+
+    return { available: true, balances };
+  } catch (error) {
+    addLog('error', 'admin', `getMintBalances error: ${error.message}`);
+    return { available: false, reason: error.message };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
 app.use(cors());
@@ -631,6 +718,9 @@ app.get('/api/admin/dashboard', requireAuth, async (req, res) => {
     // This is the "number of entries in the database" bounty requirement
     const dbStats = getDbStats();
 
+    // Compute outstanding ecash per unit (sat/usd/etc.)
+    const balances = getMintBalances();
+
     res.json({
       mintInfo: info.data,
       keys: keys.data,
@@ -638,6 +728,7 @@ app.get('/api/admin/dashboard', requireAuth, async (req, res) => {
       monitoring: monitoringData,
       os: osStats,
       db: dbStats,
+      balances,
       config: {
         mintUrl: CONFIG.mintUrl,
         authType: CONFIG.authType,
@@ -646,6 +737,35 @@ app.get('/api/admin/dashboard', requireAuth, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// =========================================================================
+// ADMIN API — MINT BALANCES
+// =========================================================================
+
+/**
+ * GET /api/admin/balances
+ * Returns outstanding ecash balance per unit (sat, usd, etc.).
+ *
+ * outstanding = SUM(outputs.amount) - SUM(proofs.amount) grouped by unit.
+ * Requires MINT_DB_PATH to be configured.
+ *
+ * Response shape:
+ *   { available: true, balances: { sat: { outstanding, issued, redeemed, unit }, usd: {...} } }
+ *   { available: false } — when DB is not configured or accessible
+ */
+app.get('/api/admin/balances', requireAuth, (req, res) => {
+  try {
+    const result = getMintBalances();
+    if (result.available) {
+      const units = Object.keys(result.balances).join(', ');
+      addLog('debug', 'admin', `Balances: ${units}`);
+    }
+    res.json(result);
+  } catch (error) {
+    addLog('error', 'admin', `Balances error: ${error.message}`);
+    res.status(500).json({ available: false, reason: error.message });
   }
 });
 

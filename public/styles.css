@@ -1538,3 +1538,117 @@ select option {
   opacity: 0.5;
   word-break: break-all;
 }
+
+/* =========================================================================
+   Mint Balances Section — Dashboard top banner (outstanding ecash per unit)
+   ========================================================================= */
+
+.mint-balances-section {
+  margin-bottom: 24px;
+}
+
+.mint-balances-section .section-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.mint-balance-cards {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mint-balance-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px 28px;
+  flex: 1;
+  min-width: 220px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.mint-balance-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-primary), #9d6de6);
+}
+
+.mint-balance-card.unit-usd::before {
+  background: linear-gradient(90deg, #3fb950, #2ea043);
+}
+
+.mint-balance-card.unit-eur::before {
+  background: linear-gradient(90deg, #58a6ff, #1f6feb);
+}
+
+.mint-balance-card:hover {
+  border-color: var(--accent-primary);
+}
+
+.mint-balance-icon {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.mint-balance-info {
+  min-width: 0;
+}
+
+.mint-balance-unit {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.mint-balance-amount {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.mint-balance-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.mint-balance-detail {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  opacity: 0.7;
+}
+
+.mint-balance-placeholder {
+  opacity: 0.5;
+}
+
+.mint-balance-unavailable {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+.mint-balance-unavailable .mint-balance-amount {
+  font-size: 1rem;
+  color: var(--text-muted);
+}
